@@ -6,39 +6,37 @@
 
 ALLEGRO_DISPLAY *init_allegro(int *screen_width, int *screen_height)
 {
-  if (!al_init())
-  {
-    fprintf(stderr, "Falha ao inicializar Allegro.\n");
+    if (!al_init())
+    {
+        fprintf(stderr, "Falha ao inicializar Allegro.\n");
+        return NULL;
+    }
 
-    return NULL;
-  }
+    if (!al_init_image_addon())
+    {
+        fprintf(stderr, "Falha ao inicializar o addon de imagens.\n");
+        return NULL;
+    }
 
-  if (!al_init_image_addon())
-  {
-    fprintf(stderr, "Falha ao inicializar o addon de imagens.\n");
+    if (!al_install_keyboard())
+    {
+        fprintf(stderr, "Falha ao inicializar teclado.\n");
+        return NULL;
+    }
 
-    return NULL;
-  }
+    ALLEGRO_MONITOR_INFO context;
+    al_get_monitor_info(0, &context);
+    *screen_width = context.x2 - context.x1;
+    *screen_height = context.y2 - context.y1;
 
-  if (!al_install_keyboard())
-  {
-    fprintf(stderr, "Falha ao inicializar teclado.\n");
+    ALLEGRO_DISPLAY *display = al_create_display(*screen_width, *screen_height);
 
-    return NULL;
-  }
+    if (!display)
+    {
+        fprintf(stderr, "Falha ao criar display.\n");
 
-  ALLEGRO_MONITOR_INFO context;
-  al_get_monitor_info(0, &context);
-  *screen_width = context.x2 - context.x1;
-  *screen_height = context.y2 - context.y1;
+        return NULL;
+    }
 
-  ALLEGRO_DISPLAY *display = al_create_display(*screen_width, *screen_height);
-  if (!display)
-  {
-    fprintf(stderr, "Falha ao criar display.\n");
-
-    return NULL;
-  }
-
-  return display;
+    return display;
 }
