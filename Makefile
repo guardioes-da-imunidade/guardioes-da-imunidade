@@ -1,10 +1,13 @@
 TARGET = game
 
-SRC = main.c
+SRC = main.c \
+      src/core/init.c \
+      src/core/event.c \
+      src/systems/resource.c
 
 CC = gcc
 
-LIBS = -lallegro
+LIBS = -lallegro -lallegro_dialog -lallegro_image
 
 # Cria a pasta ./build se ela não existir
 BUILD_DIR = build
