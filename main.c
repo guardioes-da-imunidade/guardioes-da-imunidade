@@ -12,6 +12,8 @@ int main()
     if (!display)
         return 1;
 
+    ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
+
     ALLEGRO_BITMAP *logo = load_bitmap_centered("assets/logos/logo.png", display);
     if (!logo)
         return 1;
@@ -23,7 +25,9 @@ int main()
 
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_display_event_source(display));
+    al_register_event_source(event_queue, al_get_timer_event_source(timer));
     al_register_event_source(event_queue, al_get_keyboard_event_source());
+    al_start_timer(timer);
 
     bool running = true;
     while (running)
