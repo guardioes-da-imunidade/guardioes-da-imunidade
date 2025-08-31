@@ -52,7 +52,7 @@ int main()
     al_register_event_source(event_queue, al_get_mouse_event_source());
     al_start_timer(timer);
 
-    int btn_x = 850;
+    int btn_x = 810;
     int btn_y = 800;
     int btn_width = 300;
     int btn_height = 300;
