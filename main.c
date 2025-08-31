@@ -41,7 +41,8 @@ int main()
             if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
                 running = false;
 
-            if (event.type == ALLEGRO_EVENT_KEY_DOWN)
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN &&
+                event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
                 running = false;
         }
 
