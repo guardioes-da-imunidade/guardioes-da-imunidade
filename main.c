@@ -1,59 +1,105 @@
 #include <allegro5/allegro5.h>
-#include <allegro5/allegro_font.h>
-#include <allegro5/allegro_ttf.h>
-
-#include "src/core/event.h"
-#include "src/core/init.h"
-#include "src/systems/resource.h"
+#include <allegro5/allegro_image.h>
+#include <allegro5/allegro_native_dialog.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 int main()
 {
     int screen_width, screen_height;
 
-    al_init_font_addon();
-    al_init_ttf_addon();
-
-    ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
-    if (!display)
+    if (!al_init())
+    {
+        fprintf(stderr, "Falha ao inicializar Allegro.\n");
         return 1;
+    }
+
+    if (!al_init_image_addon())
+    {
+        fprintf(stderr, "Falha ao inicializar addon de imagens.\n");
+        return 1;
+    }
+
+    if (!al_install_keyboard())
+    {
+        fprintf(stderr, "Falha ao inicializar teclado.\n");
+        return 1;
+    }
+
+    al_install_mouse();
+
+    ALLEGRO_MONITOR_INFO context;
+    al_get_monitor_info(0, &context);
+    screen_width = context.x2 - context.x1;
+    screen_height = context.y2 - context.y1;
+
+    ALLEGRO_DISPLAY *display = al_create_display(screen_width, screen_height);
 
     al_set_window_title(display, "Guardiões da imunidade");
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
 
-    ALLEGRO_BITMAP *logo = load_bitmap_centered("assets/logos/logo.png", display);
-    if (!logo)
-        return 1;
+    ALLEGRO_BITMAP *background = al_load_bitmap("assets/images/menu/background_menu.png");
 
-    ALLEGRO_FONT *font = al_load_ttf_font("assets/fonts/arial.ttf", 32, 0);
+    ALLEGRO_BITMAP *logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
 
-    int logo_width = al_get_bitmap_width(logo);
-    int logo_height = al_get_bitmap_height(logo);
-    float logo_x_position = (screen_width - logo_width) / 2.0f;
-    float logo_y_position = (screen_height - logo_height) / 2.0f;
+    ALLEGRO_BITMAP *play_game = al_load_bitmap("assets/images/buttons/play.png");
 
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
     al_register_event_source(event_queue, al_get_keyboard_event_source());
+    al_register_event_source(event_queue, al_get_mouse_event_source());
     al_start_timer(timer);
+
+    int btn_x = 850;
+    int btn_y = 800;
+    int btn_width = 300;
+    int btn_height = 300;
 
     bool running = true;
     while (running)
     {
-        process_events(event_queue, &running);
+        ALLEGRO_EVENT event;
+        while (al_get_next_event(event_queue, &event))
+        {
+            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
+                running = false;
 
-        al_clear_to_color(al_map_rgb(251, 247, 238));
-        al_draw_bitmap(logo, logo_x_position, logo_y_position, 0);
-        al_draw_text(font, al_map_rgb(0, 0, 0), 650, 1000, 0,
-                     "Aperte qualquer tecla para começar!");
+            if (event.type == ALLEGRO_EVENT_KEY_DOWN)
+                running = false;
+        }
+
+        al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
+                              al_get_bitmap_height(background), 0, 0, screen_width, screen_height,
+                              0);
+
+        al_draw_bitmap(logo, 450, -120, 0);
+
+        al_draw_scaled_bitmap(play_game, 0, 0, al_get_bitmap_width(play_game),
+                              al_get_bitmap_height(play_game), btn_x, btn_y, btn_width, btn_height,
+                              0);
+
+        if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
+        {
+            int mx = event.mouse.x;
+            int my = event.mouse.y;
+
+            if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
+            {
+                printf("Botao de jogar clicado!\n");
+            }
+        }
+
         al_flip_display();
     }
 
-    al_destroy_font(font);
     al_destroy_bitmap(logo);
+    al_destroy_bitmap(play_game);
+    al_destroy_bitmap(background);
     al_destroy_display(display);
     al_destroy_event_queue(event_queue);
+    al_destroy_timer(timer);
 
     return 0;
 }
