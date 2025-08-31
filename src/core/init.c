@@ -9,18 +9,28 @@ ALLEGRO_DISPLAY *init_allegro(int *screen_width, int *screen_height)
     if (!al_init())
     {
         fprintf(stderr, "Falha ao inicializar Allegro.\n");
+
         return NULL;
     }
 
     if (!al_init_image_addon())
     {
         fprintf(stderr, "Falha ao inicializar o addon de imagens.\n");
+
         return NULL;
     }
 
     if (!al_install_keyboard())
     {
         fprintf(stderr, "Falha ao inicializar teclado.\n");
+
+        return NULL;
+    }
+
+    if (!al_install_mouse())
+    {
+        fprintf(stderr, "Falha ao inicializar mouse.\n");
+
         return NULL;
     }
 

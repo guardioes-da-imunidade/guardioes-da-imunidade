@@ -4,38 +4,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "src/core/init.h"
+
 int main()
 {
     int screen_width, screen_height;
 
-    if (!al_init())
-    {
-        fprintf(stderr, "Falha ao inicializar Allegro.\n");
-        return 1;
-    }
-
-    if (!al_init_image_addon())
-    {
-        fprintf(stderr, "Falha ao inicializar addon de imagens.\n");
-        return 1;
-    }
-
-    if (!al_install_keyboard())
-    {
-        fprintf(stderr, "Falha ao inicializar teclado.\n");
-        return 1;
-    }
-
-    al_install_mouse();
-
-    ALLEGRO_MONITOR_INFO context;
-    al_get_monitor_info(0, &context);
-    screen_width = context.x2 - context.x1;
-    screen_height = context.y2 - context.y1;
-
-    ALLEGRO_DISPLAY *display = al_create_display(screen_width, screen_height);
-
-    al_set_window_title(display, "Guardiões da imunidade");
+    ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
 
