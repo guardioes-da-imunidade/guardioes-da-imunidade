@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include "src/core/init.h"
+#include "src/core/event.h"
 
 int main()
 {
@@ -35,16 +36,9 @@ int main()
     bool running = true;
     while (running)
     {
-        ALLEGRO_EVENT event;
-        while (al_get_next_event(event_queue, &event))
-        {
-            if (event.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
-                running = false;
+        ALLEGRO_EVENT current_event;
 
-            if (event.type == ALLEGRO_EVENT_KEY_DOWN &&
-                event.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
-                running = false;
-        }
+        process_events(event_queue, &current_event, &running);
 
         al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
                               al_get_bitmap_height(background), 0, 0, screen_width, screen_height,
@@ -56,10 +50,10 @@ int main()
                               al_get_bitmap_height(play_game), btn_x, btn_y, btn_width, btn_height,
                               0);
 
-        if (event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
+        if (current_event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
         {
-            int mx = event.mouse.x;
-            int my = event.mouse.y;
+            int mx = current_event.mouse.x;
+            int my = current_event.mouse.y;
 
             if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
             {
