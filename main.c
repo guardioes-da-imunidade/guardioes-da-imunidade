@@ -4,8 +4,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "src/core/game.h"
 #include "src/core/init.h"
-#include "src/core/event.h"
+#include "src/screens/base/menu.h"
+
+Screen *current_screen = &MenuScreen;
 
 int main()
 {
@@ -14,59 +17,33 @@ int main()
     ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
-
-    ALLEGRO_BITMAP *background = al_load_bitmap("assets/images/menu/background_menu.png");
-
-    ALLEGRO_BITMAP *logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
-
-    ALLEGRO_BITMAP *play_game = al_load_bitmap("assets/images/buttons/play.png");
-
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
+
     al_register_event_source(event_queue, al_get_display_event_source(display));
     al_register_event_source(event_queue, al_get_timer_event_source(timer));
     al_register_event_source(event_queue, al_get_keyboard_event_source());
     al_register_event_source(event_queue, al_get_mouse_event_source());
     al_start_timer(timer);
 
-    int btn_x = 810;
-    int btn_y = 800;
-    int btn_width = 300;
-    int btn_height = 300;
-
     bool running = true;
+
+    current_screen->init(display);
+
     while (running)
     {
         ALLEGRO_EVENT current_event;
-
-        process_events(event_queue, &current_event, &running);
-
-        al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
-                              al_get_bitmap_height(background), 0, 0, screen_width, screen_height,
-                              0);
-
-        al_draw_bitmap(logo, 450, -120, 0);
-
-        al_draw_scaled_bitmap(play_game, 0, 0, al_get_bitmap_width(play_game),
-                              al_get_bitmap_height(play_game), btn_x, btn_y, btn_width, btn_height,
-                              0);
-
-        if (current_event.type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
+        while (al_get_next_event(event_queue, &current_event))
         {
-            int mx = current_event.mouse.x;
-            int my = current_event.mouse.y;
-
-            if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
-            {
-                printf("Botao de jogar clicado!\n");
-            }
+            current_screen->update(&current_event, &running);
         }
 
+        al_clear_to_color(al_map_rgb(0, 0, 0));
+        current_screen->draw(screen_width, screen_height);
         al_flip_display();
     }
 
-    al_destroy_bitmap(logo);
-    al_destroy_bitmap(play_game);
-    al_destroy_bitmap(background);
+    current_screen->destroy();
+
     al_destroy_display(display);
     al_destroy_event_queue(event_queue);
     al_destroy_timer(timer);

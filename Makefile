@@ -2,7 +2,9 @@ TARGET = game
 
 SRC = main.c \
       src/core/init.c \
-      src/core/event.c \
+      src/core/game.c \
+      src/screens/base/menu.c \
+      src/screens/base/config.c \
       src/systems/resource.c
 
 CC = gcc
