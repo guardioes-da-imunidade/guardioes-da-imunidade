@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "../../core/game.h"
+#include "../game_screen/game_screen.h"
 #include "config.h"
 
 extern GameState current_game_state;
@@ -37,6 +38,11 @@ static void update(ALLEGRO_EVENT *event, bool *running)
         if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
         {
             printf("Botao de jogar clicado!\n");
+
+            current_screen->destroy();
+
+            current_screen = &GameScreen;
+            current_screen->init(NULL);
         }
     }
 
