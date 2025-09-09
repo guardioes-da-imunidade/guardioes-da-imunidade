@@ -5,11 +5,12 @@ SRC = main.c \
       src/core/game.c \
       src/screens/base/menu.c \
       src/screens/base/config.c \
+      src/screens/game_screen/game_screen.c \
       src/systems/resource.c
 
 CC = gcc
 
-LIBS = -lallegro -lallegro_dialog -lallegro_image -lallegro_font -lallegro_ttf
+LIBS = -lallegro -lallegro_dialog -lallegro_image -lallegro_font -lallegro_ttf -lallegro_primitives
 
 # Cria a pasta ./build se ela não existir
 BUILD_DIR = build
