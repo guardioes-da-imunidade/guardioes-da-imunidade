@@ -19,6 +19,11 @@ static bool circle_active = true;
 static float respawn_timer = 0;
 static bool first_run = true;
 
+static float projectile_x = -100;
+static float projectile_y = 0;
+static bool projectile_active = false;
+static float shoot_timer = 0;
+
 static void init(ALLEGRO_DISPLAY *display)
 {
     current_game_state = GAME_PLAYING;
@@ -61,6 +66,37 @@ static void draw(int screen_width, int screen_height)
         }
     }
 
+    shoot_timer++;
+    if (shoot_timer >= 60 && !projectile_active)
+    {
+        projectile_x = square_x + 40;
+        projectile_y = square_y + 20;
+        projectile_active = true;
+        shoot_timer = 0;
+    }
+
+    if (projectile_active)
+    {
+        projectile_x += 8;
+        if (projectile_x > screen_width)
+        {
+            projectile_active = false;
+        }
+
+        if (circle_active)
+        {
+            float dx = projectile_x - circle_x;
+            float dy = projectile_y - circle_y;
+            float distance_squared = dx * dx + dy * dy;
+            if (distance_squared < (25 + 5) * (25 + 5))
+            {
+                circle_active = false;
+                projectile_active = false;
+                respawn_timer = 120;
+            }
+        }
+    }
+
     if (!circle_active)
     {
         respawn_timer--;
@@ -78,6 +114,11 @@ static void draw(int screen_width, int screen_height)
     if (circle_active)
     {
         al_draw_filled_circle(circle_x, circle_y, 25, al_map_rgb(255, 100, 100));
+    }
+
+    if (projectile_active)
+    {
+        al_draw_filled_circle(projectile_x, projectile_y, 5, al_map_rgb(255, 255, 100));
     }
 }
 
