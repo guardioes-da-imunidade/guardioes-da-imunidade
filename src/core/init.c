@@ -2,6 +2,7 @@
 
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_native_dialog.h>
+#include <allegro5/allegro_primitives.h>
 #include <stdio.h>
 
 ALLEGRO_DISPLAY *init_allegro(int *screen_width, int *screen_height)
@@ -16,6 +17,13 @@ ALLEGRO_DISPLAY *init_allegro(int *screen_width, int *screen_height)
     if (!al_init_image_addon())
     {
         fprintf(stderr, "Falha ao inicializar o addon de imagens.\n");
+
+        return NULL;
+    }
+
+    if (!al_init_primitives_addon())
+    {
+        fprintf(stderr, "Falha ao inicializar o addon de primitivas.\n");
 
         return NULL;
     }
