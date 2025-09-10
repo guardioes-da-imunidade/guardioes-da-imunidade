@@ -37,8 +37,6 @@ static void update(ALLEGRO_EVENT *event, bool *running)
 
         if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
         {
-            printf("Botao de jogar clicado!\n");
-
             current_screen->destroy();
 
             current_screen = &GameScreen;
