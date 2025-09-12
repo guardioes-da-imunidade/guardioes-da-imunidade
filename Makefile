@@ -6,7 +6,8 @@ SRC = main.c \
       src/screens/base/menu.c \
       src/screens/base/config.c \
       src/screens/game_screen/game_screen.c \
-      src/systems/resource.c
+      src/systems/resource.c \
+	  src/entities/player/player-entity.c
 
 CC = gcc
 
