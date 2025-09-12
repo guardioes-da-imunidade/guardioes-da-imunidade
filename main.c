@@ -6,9 +6,11 @@
 
 #include "src/core/game.h"
 #include "src/core/init.h"
+#include "src/entities/player/player-entity.h"
 #include "src/screens/base/menu.h"
 
 Screen *current_screen = &MenuScreen;
+PlayerEntity *PLAYER_ENTITY = NULL;
 
 int main()
 {
@@ -25,12 +27,14 @@ int main()
     al_register_event_source(event_queue, al_get_mouse_event_source());
     al_start_timer(timer);
 
-    bool running = true;
-
     current_screen->init(display);
+
+    bool running = true;
 
     while (running)
     {
+        init_player();
+
         ALLEGRO_EVENT current_event;
         while (al_get_next_event(event_queue, &current_event))
         {
