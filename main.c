@@ -31,10 +31,10 @@ int main()
 
     bool running = true;
 
+    init_player();
+
     while (running)
     {
-        init_player();
-
         ALLEGRO_EVENT current_event;
         while (al_get_next_event(event_queue, &current_event))
         {
@@ -48,6 +48,7 @@ int main()
 
     current_screen->destroy();
 
+    free(PLAYER_ENTITY);
     al_destroy_display(display);
     al_destroy_event_queue(event_queue);
     al_destroy_timer(timer);
