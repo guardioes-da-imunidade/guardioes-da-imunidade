@@ -12,4 +12,6 @@ typedef struct PlayerEntity
 
 extern PlayerEntity *PLAYER_ENTITY;
 
+void init_player(void);
+
 #endif
