@@ -11,7 +11,7 @@ SRC = main.c \
 
 CC = gcc
 
-LIBS = -lallegro -lallegro_dialog -lallegro_image -lallegro_font -lallegro_ttf -lallegro_primitives
+LIBS = -lallegro -lallegro_dialog -lallegro_image -lallegro_font -lallegro_ttf -lallegro_primitives -lallegro_audio -lallegro_acodec
 
 # Cria a pasta ./build se ela não existir
 BUILD_DIR = build
