@@ -1,6 +1,8 @@
 #include "menu.h"
 
 #include <allegro5/allegro_image.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 #include <stdio.h>
 
 #include "../../core/game.h"
@@ -13,6 +15,8 @@ extern Screen *current_screen;
 static ALLEGRO_BITMAP *background = NULL;
 static ALLEGRO_BITMAP *logo = NULL;
 static ALLEGRO_BITMAP *play_game = NULL;
+static ALLEGRO_SAMPLE *button_clicked = NULL;
+
 
 static int btn_x = 810;
 static int btn_y = 800;
@@ -26,6 +30,7 @@ static void init(ALLEGRO_DISPLAY *display)
     background = al_load_bitmap("assets/images/menu/background_menu.png");
     logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
     play_game = al_load_bitmap("assets/images/buttons/play.png");
+    button_clicked = al_load_sample("assets/audios/play_game.wav");
 }
 
 static void update(ALLEGRO_EVENT *event, bool *running)
@@ -37,6 +42,9 @@ static void update(ALLEGRO_EVENT *event, bool *running)
 
         if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
         {
+            al_play_sample(button_clicked, 1.0, 0.0,1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
+            al_rest(1.0);
+
             current_screen->destroy();
 
             current_screen = &GameScreen;
@@ -50,6 +58,12 @@ static void update(ALLEGRO_EVENT *event, bool *running)
 
         current_screen = &ConfigScreen;
         current_screen->init(NULL);
+    }
+
+    if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_SPACE)
+    {
+        al_play_sample(button_clicked, 1.0, 0.0,1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
+
     }
 }
 
@@ -77,6 +91,8 @@ static void destroy(void)
         al_destroy_bitmap(logo);
     if (play_game)
         al_destroy_bitmap(play_game);
+    if (button_clicked)
+        al_destroy_sample(button_clicked);
 }
 
 Screen MenuScreen = {

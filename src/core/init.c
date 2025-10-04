@@ -3,6 +3,8 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_native_dialog.h>
 #include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 #include <stdio.h>
 
 ALLEGRO_DISPLAY *init_allegro(int *screen_width, int *screen_height)
@@ -38,6 +40,27 @@ ALLEGRO_DISPLAY *init_allegro(int *screen_width, int *screen_height)
     if (!al_install_mouse())
     {
         fprintf(stderr, "Falha ao inicializar mouse.\n");
+
+        return NULL;
+    }
+
+    if (!al_install_audio())
+    {
+        fprintf(stderr, "Falha ao inicializar áudio.\n");
+
+        return NULL;
+    }
+
+    if (!al_init_acodec_addon())
+    {
+        fprintf(stderr, "Falha ao inicializar o addon de codecs de áudio.\n");
+
+        return NULL;
+    }
+
+    if (!al_reserve_samples(20))
+    {
+        fprintf(stderr, "Falha ao reservar canais de áudio.\n");
 
         return NULL;
     }
