@@ -17,6 +17,7 @@ static ALLEGRO_BITMAP *background = NULL;
 static ALLEGRO_BITMAP *logo = NULL;
 static ALLEGRO_BITMAP *play_game = NULL;
 static ALLEGRO_SAMPLE *button_clicked = NULL;
+static ALLEGRO_AUDIO_STREAM *menu_music = NULL;
 
 static int btn_x = 810;
 static int btn_y = 800;
@@ -32,6 +33,9 @@ static void init(ALLEGRO_DISPLAY *display)
     logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
     play_game = al_load_bitmap("assets/images/buttons/play.png");
     button_clicked = load_sound_effect("assets/audios/play_game.wav");
+    menu_music = al_load_audio_stream("assets/audios/background_music_test.wav", 4, 1024 * 8);
+    al_attach_audio_stream_to_mixer(menu_music, al_get_default_mixer());
+    al_set_audio_stream_playmode(menu_music, ALLEGRO_PLAYMODE_LOOP);
 }
 
 static void update(ALLEGRO_EVENT *event, bool *running)
@@ -43,6 +47,7 @@ static void update(ALLEGRO_EVENT *event, bool *running)
 
         if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
         {
+            al_drain_audio_stream(menu_music);
             play_sound_effect(button_clicked, 5.0);
             al_rest(1.5);
 
@@ -65,6 +70,7 @@ static void update(ALLEGRO_EVENT *event, bool *running)
     {
         play_sound_effect(button_clicked, 1.0);
     }
+
 }
 
 static void draw(int screen_width, int screen_height)
@@ -93,6 +99,8 @@ static void destroy(void)
         al_destroy_bitmap(play_game);
     if (button_clicked)
         al_destroy_sample(button_clicked);
+    if (menu_music)
+        al_destroy_audio_stream(menu_music);
 }
 
 Screen MenuScreen = {
