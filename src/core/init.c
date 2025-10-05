@@ -58,13 +58,6 @@ ALLEGRO_DISPLAY *init_allegro(int *screen_width, int *screen_height)
         return NULL;
     }
 
-    if (!al_reserve_samples(20))
-    {
-        fprintf(stderr, "Falha ao reservar canais de áudio.\n");
-
-        return NULL;
-    }
-
     ALLEGRO_MONITOR_INFO context;
     al_get_monitor_info(0, &context);
     *screen_width = context.x2 - context.x1;

@@ -1,10 +1,11 @@
 #include "menu.h"
 
-#include <allegro5/allegro_image.h>
-#include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_image.h>
 #include <stdio.h>
 
+#include "../../systems/sound_effect.h"
 #include "../../core/game.h"
 #include "../game_screen/game_screen.h"
 #include "config.h"
@@ -17,7 +18,6 @@ static ALLEGRO_BITMAP *logo = NULL;
 static ALLEGRO_BITMAP *play_game = NULL;
 static ALLEGRO_SAMPLE *button_clicked = NULL;
 
-
 static int btn_x = 810;
 static int btn_y = 800;
 static int btn_width = 300;
@@ -26,11 +26,12 @@ static int btn_height = 300;
 static void init(ALLEGRO_DISPLAY *display)
 {
     current_game_state = GAME_MENU;
+    init_sound_effect(1);
 
     background = al_load_bitmap("assets/images/menu/background_menu.png");
     logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
     play_game = al_load_bitmap("assets/images/buttons/play.png");
-    button_clicked = al_load_sample("assets/audios/play_game.wav");
+    button_clicked = load_sound_effect("assets/audios/play_game.wav");
 }
 
 static void update(ALLEGRO_EVENT *event, bool *running)
@@ -42,8 +43,8 @@ static void update(ALLEGRO_EVENT *event, bool *running)
 
         if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
         {
-            al_play_sample(button_clicked, 1.0, 0.0,1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-            al_rest(1.0);
+            play_sound_effect(button_clicked, 5.0);
+            al_rest(1.5);
 
             current_screen->destroy();
 
@@ -62,8 +63,7 @@ static void update(ALLEGRO_EVENT *event, bool *running)
 
     if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_SPACE)
     {
-        al_play_sample(button_clicked, 1.0, 0.0,1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-
+        play_sound_effect(button_clicked, 1.0);
     }
 }
 
