@@ -7,6 +7,7 @@
 
 #include "../../systems/sound_effect.h"
 #include "../../systems/music.h"
+#include "../../systems/global_audio.h"
 #include "../../core/game.h"
 #include "../game_screen/game_screen.h"
 #include "config.h"
@@ -32,6 +33,7 @@ static void init(ALLEGRO_DISPLAY *display)
     background = al_load_bitmap("assets/images/menu/background_menu.png");
     logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
     play_game = al_load_bitmap("assets/images/buttons/play.png");
+    load_audio_icons();
     button_clicked = load_sound_effect("assets/audios/play_game.wav");
     load_music("assets/audios/background_music_test.wav");
     play_music();
@@ -43,6 +45,19 @@ static void update(ALLEGRO_EVENT *event, bool *running)
     {
         int mx = event->mouse.x;
         int my = event->mouse.y;
+
+        if (mx >= audio_icons_x && mx <= audio_icons_x + audio_icons_width && my >= audio_icons_y && my <= audio_icons_y + audio_icons_height)
+        {
+            toggle_mute();
+        }
+        else if (mx >= volume_increase_icon_x  && mx <= volume_icons_width + volume_increase_icon_x && my >= volume_increase_icon_y && my <= volume_increase_icon_y + volume_icons_height)
+        {
+            increase_volume();
+        }
+        else if (mx >= volume_decrease_icon_x && mx <= volume_decrease_icon_x + volume_icons_width && my >= volume_decrease_icon_y && my <= volume_decrease_icon_y + volume_icons_height)
+        {
+            lower_volume();
+        }
 
         if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
         {
@@ -85,6 +100,7 @@ static void draw(int screen_width, int screen_height)
         al_draw_scaled_bitmap(play_game, 0, 0, al_get_bitmap_width(play_game),
                               al_get_bitmap_height(play_game), btn_x, btn_y, btn_width, btn_height,
                               0);
+    draw_audio_icons();
 }
 
 static void destroy(void)

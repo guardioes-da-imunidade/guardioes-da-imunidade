@@ -8,6 +8,7 @@ SRC = main.c \
       src/screens/game_screen/game_screen.c \
 	  src/systems/sound_effect.c \
 	  src/systems/music.c \
+	  src/systems/global_audio.c \
       src/systems/resource.c \
 	  src/entities/player/player-entity.c
 
