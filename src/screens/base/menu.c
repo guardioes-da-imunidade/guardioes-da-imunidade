@@ -34,8 +34,8 @@ static void init(ALLEGRO_DISPLAY *display)
     logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
     play_game = al_load_bitmap("assets/images/buttons/play.png");
     load_audio_icons();
-    button_clicked = al_load_sample("assets/audios/play_game.wav");
-    load_music("assets/audios/background_music_test.wav");
+    button_clicked = al_load_sample("assets/audios/sound_effects/play_game.wav");
+    load_music("assets/audios/musics/background_music_test.wav");
     play_music();
 }
 
