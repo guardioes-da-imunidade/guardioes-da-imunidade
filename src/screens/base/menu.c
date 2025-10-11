@@ -28,13 +28,13 @@ static int btn_height = 300;
 static void init(ALLEGRO_DISPLAY *display)
 {
     current_game_state = GAME_MENU;
-    init_sound_effect(1);
+    al_reserve_samples(1);
 
     background = al_load_bitmap("assets/images/menu/background_menu.png");
     logo = al_load_bitmap("assets/images/logos/logo_only_title.png");
     play_game = al_load_bitmap("assets/images/buttons/play.png");
     load_audio_icons();
-    button_clicked = load_sound_effect("assets/audios/play_game.wav");
+    button_clicked = al_load_sample("assets/audios/play_game.wav");
     load_music("assets/audios/background_music_test.wav");
     play_music();
 }
@@ -62,7 +62,7 @@ static void update(ALLEGRO_EVENT *event, bool *running)
         if (mx >= btn_x && mx <= btn_x + btn_width && my >= btn_y && my <= btn_y + btn_height)
         {
             stop_music();
-            play_sound_effect(button_clicked, 5.0);
+            play_sound_effect(button_clicked);
             al_rest(1.5);
 
             current_screen->destroy();

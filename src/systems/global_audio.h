@@ -18,14 +18,14 @@ extern int volume_decrease_icon_y;
 extern int volume_icons_width;
 extern int volume_icons_height;
 
-void load_audio_icons();
+void load_audio_icons(void);
 
-void draw_audio_icons();
+void draw_audio_icons(void);
 
-void toggle_mute();
+void toggle_mute(void);
 
-void lower_volume();
+void lower_volume(void);
 
-void increase_volume();
+void increase_volume(void);
 
 #endif

@@ -8,6 +8,7 @@ ALLEGRO_BITMAP *audio_icon_off = NULL;
 ALLEGRO_BITMAP *audio_icon_on = NULL;
 ALLEGRO_BITMAP *increase_volume_icon = NULL;
 ALLEGRO_BITMAP *decrease_volume_icon = NULL;
+ALLEGRO_MIXER *mixer = NULL;
 bool muted = false;
 
 int audio_icons_x = 100;
@@ -28,7 +29,6 @@ void load_audio_icons()
     audio_icon_on = al_load_bitmap("assets/images/buttons/audio_on.png");
     increase_volume_icon = al_load_bitmap("assets/images/buttons/increase_volume_button.png");
     decrease_volume_icon = al_load_bitmap("assets/images/buttons/decrease_volume_button.png");
-
 }
 
 void draw_audio_icons()
@@ -63,10 +63,10 @@ void draw_audio_icons()
 
 void toggle_mute()
 {
-    ALLEGRO_MIXER *mixer = al_get_default_mixer();
+    mixer = al_get_default_mixer();
     if (mixer)
     {
-        int volume = al_get_mixer_gain(mixer);
+        float volume = al_get_mixer_gain(mixer);
 
         muted = !muted;
         if (muted)
@@ -82,7 +82,7 @@ void toggle_mute()
 
 void lower_volume()
 {
-    ALLEGRO_MIXER *mixer = al_get_default_mixer();
+    mixer = al_get_default_mixer();
     if (mixer)
     {
         float volume = al_get_mixer_gain(mixer);
@@ -102,21 +102,17 @@ void lower_volume()
 
 void increase_volume()
 {
-    ALLEGRO_MIXER *mixer = al_get_default_mixer();
+    mixer = al_get_default_mixer();
     if (mixer)
     {
         float volume = al_get_mixer_gain(mixer);
         volume += 0.1;
         if (volume > 1)
-            volume = 1;
-
-        al_set_mixer_gain(mixer, volume);
-
-        if (volume == 0)
         {
-            muted = true;
+            volume = 1;
         }
-        else
+        al_set_mixer_gain(mixer, volume);
+        if (volume > 0)
         {
             muted = false;
         }
