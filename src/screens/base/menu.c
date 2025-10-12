@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "../../core/game.h"
-#include "../game_screen/game_screen.h"
+#include "../lobby_screen/lobby_screen.h"
 #include "config.h"
 
 extern GameState current_game_state;
@@ -39,7 +39,7 @@ static void update(ALLEGRO_EVENT *event, bool *running)
         {
             current_screen->destroy();
 
-            current_screen = &GameScreen;
+            current_screen = &LobbyScreen;
             current_screen->init(NULL);
         }
     }
