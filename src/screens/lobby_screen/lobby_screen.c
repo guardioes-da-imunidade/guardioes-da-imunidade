@@ -109,14 +109,14 @@ static void draw(int screen_width, int screen_height)
                               al_get_bitmap_height(background), 0, 0, screen_width, screen_height,
                               0);
 
-    ALLEGRO_COLOR amarelo = al_map_rgb(255, 204, 0);
-    ALLEGRO_COLOR preto = al_map_rgb(0, 0, 0);
-    ALLEGRO_COLOR azul = al_map_rgb(135, 206, 250);
+    ALLEGRO_COLOR yellow = al_map_rgb(255, 204, 0);
+    ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
+    ALLEGRO_COLOR blue = al_map_rgb(135, 206, 250);
 
     float col_x1 = 60, col_y1 = 200, col_x2 = 280, col_y2 = 270;
-    al_draw_filled_rectangle(col_x1, col_y1, col_x2, col_y2, amarelo);
-    al_draw_rectangle(col_x1, col_y1, col_x2, col_y2, preto, 4);
-    al_draw_text(font, preto, (col_x1 + col_x2) / 2, col_y1 + 25, ALLEGRO_ALIGN_CENTRE, "Coleção");
+    al_draw_filled_rectangle(col_x1, col_y1, col_x2, col_y2, yellow);
+    al_draw_rectangle(col_x1, col_y1, col_x2, col_y2, black, 4);
+    al_draw_text(font, black, (col_x1 + col_x2) / 2, col_y1 + 25, ALLEGRO_ALIGN_CENTRE, "Coleção");
 
     float button_width = 250;
     float button_height = 80;
@@ -136,23 +136,23 @@ static void draw(int screen_width, int screen_height)
     float his_x2 = his_x1 + button_width;
     float his_y2 = his_y1 + button_height;
 
-    al_draw_filled_rectangle(sf_x1, sf_y1, sf_x2, sf_y2, amarelo);
-    al_draw_rectangle(sf_x1, sf_y1, sf_x2, sf_y2, preto, 4);
-    al_draw_text(font, preto, (sf_x1 + sf_x2) / 2, sf_y1 + 30, ALLEGRO_ALIGN_CENTRE, "Sem fim");
+    al_draw_filled_rectangle(sf_x1, sf_y1, sf_x2, sf_y2, yellow);
+    al_draw_rectangle(sf_x1, sf_y1, sf_x2, sf_y2, black, 4);
+    al_draw_text(font, black, (sf_x1 + sf_x2) / 2, sf_y1 + 30, ALLEGRO_ALIGN_CENTRE, "Sem fim");
 
-    al_draw_filled_rectangle(his_x1, his_y1, his_x2, his_y2, amarelo);
-    al_draw_rectangle(his_x1, his_y1, his_x2, his_y2, preto, 4);
-    al_draw_text(font, preto, (his_x1 + his_x2) / 2, his_y1 + 30, ALLEGRO_ALIGN_CENTRE, "História");
+    al_draw_filled_rectangle(his_x1, his_y1, his_x2, his_y2, yellow);
+    al_draw_rectangle(his_x1, his_y1, his_x2, his_y2, black, 4);
+    al_draw_text(font, black, (his_x1 + his_x2) / 2, his_y1 + 30, ALLEGRO_ALIGN_CENTRE, "História");
 
     float circle_x = screen_width - 80;
     float circle_y = 220;
     float radius = 40;
-    al_draw_filled_circle(circle_x, circle_y, radius, azul);
-    al_draw_circle(circle_x, circle_y, radius, preto, 4);
+    al_draw_filled_circle(circle_x, circle_y, radius, blue);
+    al_draw_circle(circle_x, circle_y, radius, black, 4);
 
     char vaccines_text[10];
     snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
-    al_draw_text(font, preto, circle_x, circle_y - 7, ALLEGRO_ALIGN_CENTRE, vaccines_text);
+    al_draw_text(font, black, circle_x, circle_y - 7, ALLEGRO_ALIGN_CENTRE, vaccines_text);
 }
 
 static void destroy(void)
