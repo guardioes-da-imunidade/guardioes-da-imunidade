@@ -11,6 +11,12 @@ sudo add-apt-repository ppa:allegro/5.2
 sudo apt install "liballegro*5.2" "liballegro*5-dev"
 ```
 
+Instale as bibliotecas opcionais para desenvolvimento:
+
+```bash
+sudo apt install gdb
+```
+
 ### 🔄 Como rodar em modo desenvolvimento
 
 Para executar o projeto com **hot reload**, use o script `watch.sh`:
