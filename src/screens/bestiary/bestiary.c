@@ -1,19 +1,5 @@
 #include "bestiary.h"
 
-#include <allegro5/allegro_font.h>
-#include <allegro5/allegro_image.h>
-#include <allegro5/allegro_primitives.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-typedef struct Enemy
-{
-    const char *name;
-    const char *description;
-    const char *image_path;
-    ALLEGRO_BITMAP *image;
-} Enemy;
-
 Enemy enemies[] = {
     {
         "Bactéria",
@@ -64,22 +50,6 @@ static void load_enemy_images()
     }
 }
 
-bool draw_button(float x, float y, float w, float h, const char *text, ALLEGRO_FONT *font,
-                 ALLEGRO_COLOR fill_color, ALLEGRO_COLOR border_color, ALLEGRO_COLOR text_color,
-                 int mouse_x, int mouse_y, bool mouse_clicked)
-{
-    al_draw_filled_rectangle(x, y, x + w, y + h, fill_color);
-    al_draw_rectangle(x, y, x + w, y + h, border_color, 4);
-    al_draw_text(font, text_color, x + w / 2, y + (h / 2) - 10, ALLEGRO_ALIGN_CENTER, text);
-
-    if (mouse_clicked && mouse_x >= x && mouse_x <= x + w && mouse_y >= y && mouse_y <= y + h)
-    {
-        return true;
-    }
-
-    return false;
-}
-
 static void init(ALLEGRO_DISPLAY *display)
 {
     font = al_load_font("assets/fonts/arial.ttf", 24, 0);
@@ -116,6 +86,9 @@ static void update(ALLEGRO_EVENT *event, bool *running)
         *running = false;
     }
 }
+
+void teste() { printf("CLICADOOOOO"); }
+
 static void draw(int screen_width, int screen_height)
 {
     al_clear_to_color(al_map_rgb(251, 255, 255));
@@ -123,7 +96,7 @@ static void draw(int screen_width, int screen_height)
     float padding = 80;
 
     float divider_x = screen_width / 2;
-    al_draw_line(divider_x, 0, divider_x, screen_height, COLOR_BLACK(), 2);
+    al_draw_line(divider_x, 0, divider_x, screen_height, COLOR_BLACK, 2);
 
     float button_width = 150;
     float button_height = 50;
@@ -139,12 +112,22 @@ static void draw(int screen_width, int screen_height)
         float button_x = padding + col * (button_width + button_spacing_x);
         float button_y = padding + row * (button_height + button_spacing_y);
 
-        if (draw_button(button_x, button_y, button_width, button_height, enemies[i].name, font,
-                        al_map_rgb(255, 204, 0), COLOR_BLACK(), COLOR_BLACK(), mouse_x, mouse_y,
-                        mouse_clicked))
-        {
-            current_enemy_index = i;
-        }
+        Button button = {
+            .x = button_x,
+            .y = button_y,
+            .width = button_width,
+            .height = button_height,
+            .text = {.content = enemies[i].name, .color = &COLOR_BLACK, .font = font},
+            .fill_color = &COLOR_YELLOW,
+            .border =
+                {
+                    .border_color = &COLOR_BLACK,
+                    .thickness = 1,
+                },
+            .on_click = teste,
+        };
+
+        draw_button(&button);
     }
 
     Enemy *current_enemy = &enemies[current_enemy_index];
@@ -161,10 +144,10 @@ static void draw(int screen_width, int screen_height)
                               image_width, image_height, 0);
     }
 
-    al_draw_text(font, COLOR_BLACK(), right_area_x, image_y + image_height + padding,
+    al_draw_text(font, COLOR_BLACK, right_area_x, image_y + image_height + padding,
                  ALLEGRO_ALIGN_LEFT, current_enemy->name);
 
-    al_draw_text(font_small, COLOR_BLACK(), right_area_x, image_y + image_height + padding + 40,
+    al_draw_text(font_small, COLOR_BLACK, right_area_x, image_y + image_height + padding + 40,
                  ALLEGRO_ALIGN_LEFT, current_enemy->description);
 }
 
