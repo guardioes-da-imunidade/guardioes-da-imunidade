@@ -3,6 +3,8 @@
 
 #include "../screen.h"
 
+extern Screen *current_screen;
+
 extern Screen MenuScreen;
 
 #endif
