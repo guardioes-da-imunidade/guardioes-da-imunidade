@@ -80,11 +80,7 @@ static void draw(int screen_width, int screen_height)
     }
 
     Microorganism *current = &microorganisms[current_creature_index];
-    Entity *entity;
-    if (current->is_defender)
-        entity = &((Defender *)current->entity)->base;
-    else
-        entity = &((Enemy *)current->entity)->base;
+    Entity *entity = current->entity;
 
     float right_area_x = divider_x + padding;
     float image_width = 250;
