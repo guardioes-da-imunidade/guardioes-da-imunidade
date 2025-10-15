@@ -3,52 +3,29 @@
 Enemy enemies[] = {
     {
         "Bactéria",
-        "BactériaBactériaBactériaBactériaBactériaBactériaBactériaBactériaBactériaBactériaBactériaBa"
-        "cté"
-        "riaBactériaBactéria.",
-        "bacterium",
+        "BactériaBactériaBactériaBactériaBactéria",
+        "bacterium.png",
         NULL,
     },
     {
         "Parasita",
-        "ParasitaParasitaParasitaParasitaParasitaParasitaParasitaParasitaParasitaParasita.",
-        "parasite",
+        "ParasitaParasitaParasitaParasitaParasita",
+        "parasite.png",
         NULL,
     },
     {
         "Vírus",
-        "VírusVírusVírusVírusVírusVírusVírusVírusVírusVírusVírusVírusVírusVírusVírus.",
-        "virus",
+        "VírusVírusVírusVírusVírus",
+        "virus.png",
         NULL,
     },
 };
 
-int total_enemies = sizeof(enemies) / sizeof(Enemy);
-int current_enemy_index = 0;
+static int total_enemies = sizeof(enemies) / sizeof(Enemy);
+static int current_enemy_index = 0;
 
 static ALLEGRO_FONT *font = NULL;
 static ALLEGRO_FONT *font_small = NULL;
-
-static int mouse_x = 0;
-static int mouse_y = 0;
-static bool mouse_clicked = false;
-
-static void load_enemy_images()
-{
-    for (int i = 0; i < total_enemies; i++)
-    {
-        char image_path[50];
-        snprintf(image_path, sizeof(image_path), "assets/images/enemies/%s.png",
-                 enemies[i].image_path);
-
-        enemies[i].image = al_load_bitmap(image_path);
-
-        if (!enemies[i].image)
-        {
-            printf("Falha ao carregar a imagem: %s\n", image_path);
-        }
-    }
-}
 
 static void init(ALLEGRO_DISPLAY *display)
 {
@@ -61,25 +38,23 @@ static void init(ALLEGRO_DISPLAY *display)
         font_small = al_create_builtin_font();
     }
 
-    load_enemy_images();
+    for (int i = 0; i < total_enemies; i++)
+    {
+        char image_path[50];
+        snprintf(image_path, sizeof(image_path), "assets/images/enemies/%s",
+                 enemies[i].image_path);
+
+        enemies[i].image = al_load_bitmap(image_path);
+
+        if (!enemies[i].image)
+        {
+            printf("Falha ao carregar a imagem: %s\n", image_path);
+        }
+    }
 }
 
 static void update(ALLEGRO_EVENT *event, bool *running)
 {
-    if (event->type == ALLEGRO_EVENT_MOUSE_AXES)
-    {
-        mouse_x = event->mouse.x;
-        mouse_y = event->mouse.y;
-    }
-    else if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
-    {
-        mouse_clicked = true;
-    }
-    else if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_UP)
-    {
-        mouse_clicked = false;
-    }
-
     // TO-DO: Voltar uma tela
     if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
     {
@@ -96,7 +71,7 @@ void on_creature_change(void *context)
 
 static void draw(int screen_width, int screen_height)
 {
-    al_clear_to_color(al_map_rgb(251, 255, 255));
+    al_clear_to_color(COLOR_WHITE);
 
     float padding = 80;
 
