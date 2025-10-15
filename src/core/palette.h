@@ -8,4 +8,6 @@ extern ALLEGRO_COLOR COLOR_WHITE;
 extern ALLEGRO_COLOR COLOR_YELLOW;
 extern ALLEGRO_COLOR COLOR_TRANSPARENT;
 
+void init_colors();
+
 #endif
