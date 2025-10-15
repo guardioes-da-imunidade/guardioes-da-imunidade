@@ -9,15 +9,8 @@
 
 #include "core/palette.h"
 #include "core/ui/button.h"
+#include "entities/entities.h"
 #include "screens/screen.h"
-
-typedef struct Enemy
-{
-    const char *name;
-    const char *description;
-    const char *image_path;
-    ALLEGRO_BITMAP *image;
-} Enemy;
 
 extern Screen Bestiary;
 
