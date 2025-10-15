@@ -17,12 +17,13 @@ void input_update(ALLEGRO_EVENT *event)
 
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
             mouse_down = true;
-            mouse_clicked = true;
+
+            if (event->mouse.button == 1)
+            {
+                mouse_clicked = true;
+            }
 
             break;
-
-        case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-            mouse_down = false;
 
             break;
 
@@ -37,11 +38,6 @@ int get_mouse_y() { return mouse_y; }
 
 bool mouse_is_down() { return mouse_down; }
 
-bool mouse_is_clicked()
-{
-    bool clicked = mouse_clicked;
+bool mouse_is_clicked() { return mouse_clicked; }
 
-    mouse_clicked = false;
-
-    return clicked;
-}
+void reset_mouse_click() { mouse_clicked = false; }

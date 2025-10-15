@@ -49,6 +49,8 @@ int main()
         al_clear_to_color(al_map_rgb(0, 0, 0));
         current_screen->draw(screen_width, screen_height);
         al_flip_display();
+
+        reset_mouse_click();
     }
 
     current_screen->destroy();
