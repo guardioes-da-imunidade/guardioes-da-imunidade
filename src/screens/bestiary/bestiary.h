@@ -7,9 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "src/core/palette.h"
-#include "src/core/ui/button.h"
-#include "src/screens/screen.h"
+#include "core/palette.h"
+#include "core/ui/button.h"
+#include "screens/screen.h"
 
 typedef struct Enemy
 {

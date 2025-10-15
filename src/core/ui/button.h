@@ -6,7 +6,7 @@
 #include <allegro5/allegro_primitives.h>
 #include <stdbool.h>
 
-#include "src/core/input.h"
+#include "core/input.h"
 
 typedef void (*OnClickCallback)(void);
 
