@@ -66,6 +66,9 @@ static void update(ALLEGRO_EVENT *event, bool *running)
         if (mx >= col_x1 && mx <= col_x2 && my >= col_y1 && my <= col_y2)
         {
             printf("Coleção\n");
+            current_screen->destroy();
+            current_screen = &Bestiary;
+            current_screen->init(NULL);
         }
 
         int screen_width = al_get_display_width(al_get_current_display());

@@ -12,6 +12,7 @@
 #include "entities/entities.h"
 #include "screens/screen.h"
 #include "screens/base/menu.h"
+#include "screens/lobby_screen/lobby_screen.h"
 
 extern Screen Bestiary;
 

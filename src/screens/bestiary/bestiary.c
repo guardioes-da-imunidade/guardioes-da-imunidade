@@ -13,7 +13,8 @@ static void on_microorganism_change(void *context)
 
 static void on_back()
 {
-    current_screen = &MenuScreen;
+    current_screen->destroy();
+    current_screen = &LobbyScreen;
     current_screen->init(NULL);
 }
 
