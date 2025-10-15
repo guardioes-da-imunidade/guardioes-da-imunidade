@@ -28,5 +28,5 @@ void draw_button(Button *button)
     bool is_inside_y = mouse_y >= button->y && mouse_y <= button_bottom;
 
     if (clicked && is_inside_x && is_inside_y && button->on_click)
-        button->on_click();
+        button->on_click(button->context);
 }

@@ -8,7 +8,7 @@
 
 #include "core/input.h"
 
-typedef void (*OnClickCallback)(void);
+typedef void (*OnClickCallback)(void *context);
 
 typedef struct
 {
@@ -30,6 +30,7 @@ typedef struct
     ButtonText text;
     ButtonBorder border;
     OnClickCallback on_click;
+    void *context;
 } Button;
 
 void draw_button(Button *button);

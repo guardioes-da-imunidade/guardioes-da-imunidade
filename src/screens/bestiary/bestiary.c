@@ -87,7 +87,12 @@ static void update(ALLEGRO_EVENT *event, bool *running)
     }
 }
 
-void teste() { printf("CLICADOOOOO"); }
+void on_creature_change(void *context)
+{
+    int index = *(int *)context;
+
+    current_enemy_index = index;
+}
 
 static void draw(int screen_width, int screen_height)
 {
@@ -104,8 +109,11 @@ static void draw(int screen_width, int screen_height)
     float button_spacing_y = 15;
     int buttons_per_row = 3;
 
+    int indexes[total_enemies];
     for (int i = 0; i < total_enemies; i++)
     {
+        indexes[i] = i;
+
         int row = i / buttons_per_row;
         int col = i % buttons_per_row;
 
@@ -124,7 +132,8 @@ static void draw(int screen_width, int screen_height)
                     .border_color = &COLOR_BLACK,
                     .thickness = 1,
                 },
-            .on_click = teste,
+            .on_click = on_creature_change,
+            .context = &indexes[i],
         };
 
         draw_button(&button);
