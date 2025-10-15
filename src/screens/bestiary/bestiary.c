@@ -11,6 +11,12 @@ static void on_microorganism_change(void *context)
     current_creature_index = index;
 }
 
+static void on_back()
+{
+    current_screen = &MenuScreen;
+    current_screen->init(NULL);
+}
+
 static void init()
 {
     font = al_load_font("assets/fonts/arial.ttf", 24, 0);
@@ -31,12 +37,26 @@ static void draw(int screen_width, int screen_height)
 {
     al_clear_to_color(COLOR_WHITE);
 
+    float button_width = 150;
+    float button_height = 50;
+
+    Button button = {
+        .x = 25,
+        .y = 25,
+        .width = button_width,
+        .height = button_height,
+        .text = {.content = "Voltar", .color = &COLOR_BLACK, .font = font},
+        .border = {.border_color = &COLOR_BLACK, .thickness = 2},
+        .fill_color = &COLOR_YELLOW,
+        .on_click = on_back,
+    };
+
+    draw_button(&button);
+
     float padding = 120;
     float divider_x = screen_width / 2;
     al_draw_line(divider_x, 0, divider_x, screen_height, COLOR_BLACK, 2);
 
-    float button_width = 150;
-    float button_height = 50;
     float button_spacing_x = 15;
     float button_spacing_y = 15;
     int buttons_per_row = 4;

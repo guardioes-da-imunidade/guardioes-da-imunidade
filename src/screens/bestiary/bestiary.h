@@ -11,6 +11,7 @@
 #include "core/ui/button.h"
 #include "entities/entities.h"
 #include "screens/screen.h"
+#include "screens/base/menu.h"
 
 extern Screen Bestiary;
 
