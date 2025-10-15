@@ -1,7 +1,8 @@
 #include "global_audio.h"
+
 #include <allegro5/allegro.h>
-#include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
+#include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_image.h>
 
 ALLEGRO_BITMAP *audio_icon_off = NULL;
@@ -12,14 +13,14 @@ ALLEGRO_MIXER *mixer = NULL;
 bool muted = false;
 
 int audio_icons_x = 100;
-int audio_icons_y = 20;
+int audio_icons_y = 100;
 int audio_icons_width = 100;
 int audio_icons_height = 100;
 
 int volume_increase_icon_x = 220;
-int volume_increase_icon_y = 20;
+int volume_increase_icon_y = 100;
 int volume_decrease_icon_x = 340;
-int volume_decrease_icon_y = 20;
+int volume_decrease_icon_y = 100;
 int volume_icons_width = 100;
 int volume_icons_height = 100;
 
