@@ -31,7 +31,7 @@ static void draw(int screen_width, int screen_height)
 {
     al_clear_to_color(COLOR_WHITE);
 
-    float padding = 80;
+    float padding = 120;
     float divider_x = screen_width / 2;
     al_draw_line(divider_x, 0, divider_x, screen_height, COLOR_BLACK, 2);
 
@@ -39,7 +39,7 @@ static void draw(int screen_width, int screen_height)
     float button_height = 50;
     float button_spacing_x = 15;
     float button_spacing_y = 15;
-    int buttons_per_row = 3;
+    int buttons_per_row = 4;
 
     int indexes[total_microorganisms];
     for (int i = 0; i < total_microorganisms; i++)
