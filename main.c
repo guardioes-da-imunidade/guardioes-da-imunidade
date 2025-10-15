@@ -6,6 +6,8 @@
 
 #include "src/core/game.h"
 #include "src/core/init.h"
+#include "src/core/input.h"
+#include "src/core/palette.h"
 #include "src/entities/player/player-entity.h"
 #include "src/screens/base/menu.h"
 
@@ -17,6 +19,8 @@ int main()
     int screen_width, screen_height;
 
     ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
+
+    init_colors();
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
@@ -35,10 +39,11 @@ int main()
 
     while (running)
     {
-        ALLEGRO_EVENT current_event;
-        while (al_get_next_event(event_queue, &current_event))
+        ALLEGRO_EVENT event;
+        while (al_get_next_event(event_queue, &event))
         {
-            current_screen->update(&current_event, &running);
+            input_update(&event);
+            current_screen->update(&event, &running);
         }
 
         al_clear_to_color(al_map_rgb(0, 0, 0));
