@@ -111,7 +111,7 @@ void load_microorganisms()
     for (i = 0; i < defenders_count; i++)
     {
         microorganisms[microorganisms_index].is_defender = true;
-        microorganisms[microorganisms_index].entity = &defenders[i];
+        microorganisms[microorganisms_index].entity = &defenders[i].base;
 
         defenders[i].base.image = al_load_bitmap(defenders[i].base.image_path);
 
@@ -124,7 +124,7 @@ void load_microorganisms()
     for (i = 0; i < enemies_count; i++)
     {
         microorganisms[microorganisms_index].is_defender = false;
-        microorganisms[microorganisms_index].entity = &enemies[i];
+        microorganisms[microorganisms_index].entity = &enemies[i].base;
 
         enemies[i].base.image = al_load_bitmap(enemies[i].base.image_path);
 
