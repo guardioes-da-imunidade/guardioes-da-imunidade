@@ -6,11 +6,12 @@ SRC = main.c \
       src/screens/base/menu.c \
       src/screens/base/config.c \
       src/screens/game_screen/game_screen.c \
-	  src/systems/sound_effect.c \
-	  src/systems/music.c \
-	  src/systems/global_audio.c \
+	    src/systems/sound_effect.c \
+	    src/systems/music.c \
+	    src/systems/global_audio.c \
+	    src/screens/lobby_screen/lobby_screen.c \
       src/systems/resource.c \
-	  src/entities/player/player-entity.c
+	    src/entities/player/player-entity.c
 
 CC = gcc
 
