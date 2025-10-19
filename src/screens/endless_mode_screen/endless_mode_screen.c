@@ -10,7 +10,9 @@
 #include <time.h>
 
 #include "../../core/game.h"
+#include "../../entities/player/player-entity.h"
 #include "../base/menu.h"
+#include "../lobby_screen/lobby_screen.h"
 
 extern GameState current_game_state;
 extern Screen* current_screen;
@@ -88,6 +90,9 @@ static DefenderType selected_defender = DEFENDER_WHITE_BLOOD_CELL;
 static float enemy_spawn_timer = 0.0f;
 static float placement_cooldown = 0.0f;
 static float delta_time = 1.0f / 60.0f;
+static float game_time = 0.0f;
+static float spawn_interval = 2.0f;
+static int enemies_killed = 0;
 
 static float cell_width = 0.0f;
 static float cell_height = 0.0f;
@@ -136,18 +141,32 @@ static void load_images(void)
 
 static void spawn_enemy(int screen_width)
 {
-    for (int i = 0; i < MAX_ENEMIES; i++)
+    int enemies_to_spawn = 1;
+
+    if (game_time > 60.0f)
+        enemies_to_spawn = 2;
+    if (game_time > 120.0f)
+        enemies_to_spawn = 3;
+
+    for (int spawn = 0; spawn < enemies_to_spawn; spawn++)
     {
-        if (!enemies[i].active)
+        for (int i = 0; i < MAX_ENEMIES; i++)
         {
-            enemies[i].active = true;
-            enemies[i].row = rand() % GRID_ROWS;
-            enemies[i].type = rand() % 3;
-            enemies[i].x = screen_width;
-            enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2;
-            enemies[i].speed = 30.0f + (rand() % 20);
-            enemies[i].health = 3;
-            break;
+            if (!enemies[i].active)
+            {
+                enemies[i].active = true;
+                enemies[i].row = rand() % GRID_ROWS;
+                enemies[i].type = rand() % 3;
+                enemies[i].x = screen_width + (spawn * 100);
+                enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2;
+
+                float base_speed = 30.0f + (rand() % 20);
+                float speed_multiplier = 1.0f + (game_time / 100.0f);
+                enemies[i].speed = base_speed * speed_multiplier;
+
+                enemies[i].health = 3;
+                break;
+            }
         }
     }
 }
@@ -286,9 +305,10 @@ static void update_enemies(bool* running)
 
             if (enemies[i].x < -50)
             {
-                printf("Inimigo chegou ao final! Game Over!\n");
-                *running = false;
-                return;
+                current_screen->destroy();
+
+                current_screen = &LobbyScreen;
+                current_screen->init(NULL);
             }
         }
     }
@@ -319,6 +339,9 @@ static void update_projectiles(int screen_width)
                         if (enemies[j].health <= 0)
                         {
                             enemies[j].active = false;
+                            enemies_killed++;
+                            PLAYER_ENTITY->vaccines++;
+                            printf("Inimigo eliminado! Vacinas: %d\n", PLAYER_ENTITY->vaccines);
                         }
                         projectiles[i].active = false;
                         break;
@@ -335,6 +358,10 @@ static void init(ALLEGRO_DISPLAY* display)
 
     srand(time(NULL));
     init_arrays();
+
+    game_time = 0.0f;
+    spawn_interval = 2.0f;
+    enemies_killed = 0;
 
     background = al_load_bitmap("assets/images/maps/initial.png");
     if (!background)
@@ -365,7 +392,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
     if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
     {
         current_screen->destroy();
-        current_screen = &MenuScreen;
+        current_screen = &LobbyScreen;
         current_screen->init(NULL);
     }
 
@@ -418,6 +445,12 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             return;
         }
 
+        game_time += delta_time;
+
+        spawn_interval = 2.0f - (game_time / 100.0f);
+        if (spawn_interval < 0.5f)
+            spawn_interval = 0.5f;
+
         if (placement_cooldown > 0.0f)
         {
             placement_cooldown -= delta_time;
@@ -425,11 +458,21 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
         update_defenders();
         update_enemies(running);
+
+        if (!(*running))
+        {
+            printf("Game Over! Vacinas coletadas: %d\n", PLAYER_ENTITY->vaccines);
+            current_screen->destroy();
+            current_screen = &LobbyScreen;
+            current_screen->init(NULL);
+            return;
+        }
+
         update_projectiles(screen_width_cached);
         check_enemy_defender_collision();
 
         enemy_spawn_timer += delta_time;
-        if (enemy_spawn_timer >= 2.0f)
+        if (enemy_spawn_timer >= spawn_interval)
         {
             spawn_enemy(screen_width_cached);
             enemy_spawn_timer = 0.0f;
