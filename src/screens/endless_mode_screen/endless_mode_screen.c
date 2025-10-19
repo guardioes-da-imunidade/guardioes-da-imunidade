@@ -24,12 +24,13 @@ static ALLEGRO_BITMAP* enemy_images[3] = {NULL, NULL, NULL};
 
 #define GRID_COLS 9
 #define GRID_ROWS 5
-#define GRID_START_Y 120
-#define SELECTOR_HEIGHT 100
+#define GRID_START_Y 90
+#define SELECTOR_HEIGHT 60
 
 #define MAX_DEFENDERS 45
 #define MAX_ENEMIES 50
 #define MAX_PROJECTILES 100
+#define MAX_PARTICLES 200
 
 typedef enum
 {
@@ -51,6 +52,17 @@ typedef enum
     PROJECTILE_BLUE_MAGIC = 1,
     PROJECTILE_RED_LASER = 2
 } ProjectileType;
+
+typedef struct
+{
+    float x;
+    float y;
+    float vx;
+    float vy;
+    float life;
+    float max_life;
+    ALLEGRO_COLOR color;
+} Particle;
 
 typedef struct
 {
@@ -80,11 +92,13 @@ typedef struct
     float speed;
     bool active;
     ProjectileType type;
+    float animation_time;
 } Projectile;
 
 static Defender defenders[MAX_DEFENDERS];
 static Enemy enemies[MAX_ENEMIES];
 static Projectile projectiles[MAX_PROJECTILES];
+static Particle particles[MAX_PARTICLES];
 
 static DefenderType selected_defender = DEFENDER_WHITE_BLOOD_CELL;
 static float enemy_spawn_timer = 0.0f;
@@ -113,6 +127,33 @@ static void init_arrays(void)
     for (int i = 0; i < MAX_PROJECTILES; i++)
     {
         projectiles[i].active = false;
+    }
+    for (int i = 0; i < MAX_PARTICLES; i++)
+    {
+        particles[i].life = 0.0f;
+    }
+}
+
+static void spawn_particle_burst(float x, float y, int count, ALLEGRO_COLOR color)
+{
+    for (int i = 0; i < count; i++)
+    {
+        for (int j = 0; j < MAX_PARTICLES; j++)
+        {
+            if (particles[j].life <= 0.0f)
+            {
+                particles[j].x = x;
+                particles[j].y = y;
+                float angle = (2.0f * 3.14159f * i) / count;
+                float speed = 100.0f + (rand() % 100);
+                particles[j].vx = cos(angle) * speed;
+                particles[j].vy = sin(angle) * speed;
+                particles[j].max_life = 0.5f;
+                particles[j].life = 0.5f;
+                particles[j].color = color;
+                break;
+            }
+        }
     }
 }
 
@@ -143,10 +184,12 @@ static void spawn_enemy(int screen_width)
 {
     int enemies_to_spawn = 1;
 
-    if (game_time > 60.0f)
+    if (game_time > 30.0f)
         enemies_to_spawn = 2;
-    if (game_time > 120.0f)
+    if (game_time > 60.0f)
         enemies_to_spawn = 3;
+    if (game_time > 90.0f)
+        enemies_to_spawn = 4;
 
     for (int spawn = 0; spawn < enemies_to_spawn; spawn++)
     {
@@ -157,11 +200,11 @@ static void spawn_enemy(int screen_width)
                 enemies[i].active = true;
                 enemies[i].row = rand() % GRID_ROWS;
                 enemies[i].type = rand() % 3;
-                enemies[i].x = screen_width + (spawn * 100);
+                enemies[i].x = screen_width + (spawn * 80);
                 enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2;
 
-                float base_speed = 30.0f + (rand() % 20);
-                float speed_multiplier = 1.0f + (game_time / 100.0f);
+                float base_speed = 35.0f + (rand() % 25);
+                float speed_multiplier = 1.0f + (game_time / 60.0f);
                 enemies[i].speed = base_speed * speed_multiplier;
 
                 enemies[i].health = 3;
@@ -196,6 +239,11 @@ static void add_defender(int row, int col, DefenderType type)
             defenders[i].type = type;
             defenders[i].shoot_timer = 0.0f;
             placement_cooldown = 1.0f;
+
+            float x = col * (cell_width + 1.0f) + cell_width / 2;
+            float y = GRID_START_Y + row * cell_height + cell_height / 2;
+            spawn_particle_burst(x, y, 15, al_map_rgb(100, 200, 100));
+
             printf("Defensor colocado em [%d][%d]\n", row, col);
             break;
         }
@@ -212,6 +260,7 @@ static void shoot_projectile(int row, int col, DefenderType defender_type)
             projectiles[i].row = row;
             projectiles[i].x = col * (cell_width + 1.0f) + cell_width;
             projectiles[i].y = GRID_START_Y + row * cell_height + cell_height / 2;
+            projectiles[i].animation_time = 0.0f;
 
             if (defender_type == DEFENDER_WHITE_BLOOD_CELL)
             {
@@ -252,6 +301,10 @@ static void check_enemy_defender_collision(void)
 
                     if (dist < 40.0f)
                     {
+                        spawn_particle_burst(enemies[i].x, enemies[i].y, 20,
+                                             al_map_rgb(255, 100, 100));
+                        spawn_particle_burst(defender_x, defender_y, 20, al_map_rgb(200, 50, 50));
+
                         defenders[j].active = false;
                         enemies[i].active = false;
                         printf("Defensor destruído em [%d][%d]!\n", defenders[j].row,
@@ -321,6 +374,7 @@ static void update_projectiles(int screen_width)
         if (projectiles[i].active)
         {
             projectiles[i].x += projectiles[i].speed * delta_time;
+            projectiles[i].animation_time += delta_time;
 
             if (projectiles[i].x > screen_width)
             {
@@ -338,6 +392,8 @@ static void update_projectiles(int screen_width)
                         enemies[j].health--;
                         if (enemies[j].health <= 0)
                         {
+                            spawn_particle_burst(enemies[j].x, enemies[j].y, 25,
+                                                 al_map_rgb(255, 200, 50));
                             enemies[j].active = false;
                             enemies_killed++;
                             PLAYER_ENTITY->vaccines++;
@@ -348,6 +404,20 @@ static void update_projectiles(int screen_width)
                     }
                 }
             }
+        }
+    }
+}
+
+static void update_particles(void)
+{
+    for (int i = 0; i < MAX_PARTICLES; i++)
+    {
+        if (particles[i].life > 0.0f)
+        {
+            particles[i].x += particles[i].vx * delta_time;
+            particles[i].y += particles[i].vy * delta_time;
+            particles[i].vy += 200.0f * delta_time;
+            particles[i].life -= delta_time;
         }
     }
 }
@@ -413,14 +483,20 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
         if (mouse_y < SELECTOR_HEIGHT)
         {
-            int selector_width = screen_width_cached / 3;
-            if (selector_width > 0)
+            int selector_width = 100;
+            int start_x = 10;
+
+            for (int i = 0; i < 3; i++)
             {
-                int clicked_defender = mouse_x / selector_width;
-                if (clicked_defender >= 0 && clicked_defender < 3)
+                int x1 = start_x + i * (selector_width + 10);
+                int x2 = x1 + selector_width;
+
+                if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 &&
+                    mouse_y <= SELECTOR_HEIGHT - 10)
                 {
-                    selected_defender = (DefenderType)clicked_defender;
+                    selected_defender = (DefenderType)i;
                     printf("Defensor selecionado: %d\n", selected_defender);
+                    break;
                 }
             }
             return;
@@ -447,9 +523,9 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
         game_time += delta_time;
 
-        spawn_interval = 2.0f - (game_time / 100.0f);
-        if (spawn_interval < 0.5f)
-            spawn_interval = 0.5f;
+        spawn_interval = 2.0f - (game_time / 50.0f);
+        if (spawn_interval < 0.3f)
+            spawn_interval = 0.3f;
 
         if (placement_cooldown > 0.0f)
         {
@@ -469,6 +545,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         }
 
         update_projectiles(screen_width_cached);
+        update_particles();
         check_enemy_defender_collision();
 
         enemy_spawn_timer += delta_time;
@@ -498,26 +575,39 @@ static void draw(int screen_width, int screen_height)
                               al_get_bitmap_height(background), 0, 0, screen_width, screen_height,
                               0);
 
-        int selector_width = screen_width / 3;
+        int selector_width = 100;
+        int start_x = 10;
+
         for (int i = 0; i < 3; i++)
         {
-            ALLEGRO_COLOR color = (selected_defender == i) ? al_map_rgba(0, 255, 0, 150)
-                                                           : al_map_rgba(100, 100, 100, 150);
+            int x1 = start_x + i * (selector_width + 10);
+            int x2 = x1 + selector_width;
 
-            al_draw_filled_rectangle(i * selector_width + 5, 10, (i + 1) * selector_width - 5,
-                                     SELECTOR_HEIGHT - 10, color);
+            ALLEGRO_COLOR color = (selected_defender == i) ? al_map_rgba(0, 255, 0, 180)
+                                                           : al_map_rgba(80, 80, 80, 150);
 
-            al_draw_rectangle(i * selector_width + 5, 10, (i + 1) * selector_width - 5,
-                              SELECTOR_HEIGHT - 10, al_map_rgb(255, 255, 255), 3.0f);
+            al_draw_filled_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, color);
+            al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, al_map_rgb(255, 255, 255), 2.0f);
 
             if (defender_images[i])
             {
-                float scale = 60.0f / al_get_bitmap_width(defender_images[i]);
-                al_draw_scaled_bitmap(defender_images[i], 0, 0,
-                                      al_get_bitmap_width(defender_images[i]),
-                                      al_get_bitmap_height(defender_images[i]),
-                                      i * selector_width + selector_width / 2 - 30, 25, 60, 60, 0);
+                al_draw_scaled_bitmap(
+                    defender_images[i], 0, 0, al_get_bitmap_width(defender_images[i]),
+                    al_get_bitmap_height(defender_images[i]), x1 + 35, 15, 35, 35, 0);
             }
+        }
+
+        int minutes = (int)game_time / 60;
+        int seconds = (int)game_time % 60;
+        char time_text[32];
+        sprintf(time_text, "Time: %02d:%02d", minutes, seconds);
+
+        al_draw_filled_rectangle(screen_width - 150, 10, screen_width - 10, 50,
+                                 al_map_rgba(0, 0, 0, 180));
+        if (font)
+        {
+            al_draw_text(font, al_map_rgb(255, 255, 255), screen_width - 80, 25,
+                         ALLEGRO_ALIGN_CENTER, time_text);
         }
 
         for (int row = 0; row < GRID_ROWS; row++)
@@ -526,9 +616,6 @@ static void draw(int screen_width, int screen_height)
             {
                 float x = col * (cell_width + 1.0f);
                 float y = GRID_START_Y + row * cell_height;
-
-                al_draw_rectangle(x, y, x + cell_width, (y + cell_height) - 10,
-                                  al_map_rgba(255, 0, 0, 150), 2.0f);
             }
         }
 
@@ -569,33 +656,84 @@ static void draw(int screen_width, int screen_height)
         {
             if (projectiles[i].active)
             {
+                float anim = projectiles[i].animation_time;
+
                 if (projectiles[i].type == PROJECTILE_WHITE_BALL)
                 {
-                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 12.0f,
+                    float pulse = sin(anim * 10.0f) * 2.0f;
+                    float base_radius = 12.0f;
+
+                    for (int j = 0; j < 3; j++)
+                    {
+                        float bubble_offset = sin(anim * 8.0f + j * 2.0f) * 3.0f;
+                        al_draw_filled_circle(
+                            projectiles[i].x + bubble_offset, projectiles[i].y + bubble_offset,
+                            base_radius + pulse - j * 2, al_map_rgba(255, 255, 255, 150 - j * 30));
+                    }
+
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, base_radius + pulse,
                                           al_map_rgb(255, 255, 255));
-                    al_draw_circle(projectiles[i].x, projectiles[i].y, 12.0f,
-                                   al_map_rgb(200, 200, 200), 2.0f);
+                    al_draw_circle(projectiles[i].x, projectiles[i].y, base_radius + pulse,
+                                   al_map_rgba(200, 220, 255, 180), 2.0f);
                 }
                 else if (projectiles[i].type == PROJECTILE_BLUE_MAGIC)
                 {
-                    for (int j = 0; j < 3; j++)
+                    float spiral = anim * 15.0f;
+
+                    for (int j = 0; j < 5; j++)
                     {
-                        float offset = (j - 1) * 5.0f;
-                        al_draw_filled_circle(projectiles[i].x + offset, projectiles[i].y + offset,
-                                              8.0f - j * 2, al_map_rgba(0, 100 + j * 50, 255, 200));
+                        float angle = spiral + j * 1.2f;
+                        float radius = 8.0f + sin(anim * 8.0f + j) * 3.0f;
+                        float offset_x = cos(angle) * radius;
+                        float offset_y = sin(angle) * radius;
+
+                        al_draw_filled_circle(projectiles[i].x + offset_x,
+                                              projectiles[i].y + offset_y, 5.0f - j * 0.5f,
+                                              al_map_rgba(0, 150 + j * 20, 255, 200 - j * 30));
                     }
+
+                    float glow = sin(anim * 12.0f) * 3.0f;
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 8.0f + glow,
+                                          al_map_rgba(100, 200, 255, 150));
                     al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 6.0f,
-                                          al_map_rgb(150, 200, 255));
+                                          al_map_rgb(200, 230, 255));
                 }
                 else if (projectiles[i].type == PROJECTILE_RED_LASER)
                 {
-                    al_draw_filled_rectangle(projectiles[i].x - 15, projectiles[i].y - 3,
-                                             projectiles[i].x + 15, projectiles[i].y + 3,
-                                             al_map_rgb(255, 50, 50));
-                    al_draw_filled_rectangle(projectiles[i].x - 12, projectiles[i].y - 1.5f,
-                                             projectiles[i].x + 12, projectiles[i].y + 1.5f,
-                                             al_map_rgb(255, 150, 150));
+                    float intensity = sin(anim * 20.0f);
+                    float length = 20.0f + intensity * 5.0f;
+
+                    al_draw_filled_rectangle(projectiles[i].x - length, projectiles[i].y - 5,
+                                             projectiles[i].x + length, projectiles[i].y + 5,
+                                             al_map_rgba(255, 0, 0, 100));
+
+                    al_draw_filled_rectangle(projectiles[i].x - length + 3, projectiles[i].y - 3,
+                                             projectiles[i].x + length - 3, projectiles[i].y + 3,
+                                             al_map_rgb(255, 30, 30));
+
+                    al_draw_filled_rectangle(projectiles[i].x - length + 6, projectiles[i].y - 1.5f,
+                                             projectiles[i].x + length - 6, projectiles[i].y + 1.5f,
+                                             al_map_rgb(255, 100, 100));
+
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 6.0f,
+                                          al_map_rgba(255, 50, 50, 200));
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 3.0f,
+                                          al_map_rgb(255, 200, 200));
                 }
+            }
+        }
+
+        for (int i = 0; i < MAX_PARTICLES; i++)
+        {
+            if (particles[i].life > 0.0f)
+            {
+                float alpha_factor = particles[i].life / particles[i].max_life;
+                float size = 3.0f + (1.0f - alpha_factor) * 2.0f;
+
+                ALLEGRO_COLOR particle_color = particles[i].color;
+                particle_color.a = alpha_factor;
+
+                al_draw_filled_circle(particles[i].x, particles[i].y, size, particle_color);
             }
         }
 
@@ -603,9 +741,10 @@ static void draw(int screen_width, int screen_height)
         {
             char cooldown_text[32];
             sprintf(cooldown_text, "Cooldown: %.1fs", placement_cooldown);
-            al_draw_filled_rectangle(10, screen_height - 40, 200, screen_height - 10,
+            al_draw_filled_rectangle(10, screen_height - 35, 180, screen_height - 10,
                                      al_map_rgba(0, 0, 0, 180));
-            al_draw_text(font, al_map_rgb(255, 255, 0), 45, screen_height - 30, 0, cooldown_text);
+            al_draw_text(font, al_map_rgb(255, 255, 0), 95, screen_height - 28,
+                         ALLEGRO_ALIGN_CENTER, cooldown_text);
         }
     }
 }
