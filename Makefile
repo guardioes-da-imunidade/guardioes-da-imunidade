@@ -24,7 +24,7 @@ $(shell mkdir -p $(BUILD_DIR))
 
 # Regra padrão (simplesmente "make" no terminal)
 $(TARGET): $(SRC)
-	$(CC) $(SRC) -o $(BUILD_DIR)/$(TARGET) $(LIBS)
+	$(CC) $(SRC) -o $(BUILD_DIR)/$(TARGET) $(LIBS) -lm
 
 # Limpa arquivos gerados
 clean:
