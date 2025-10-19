@@ -1,7 +1,9 @@
 #include "./endless_mode_screen.h"
 
+#include <allegro5/allegro_font.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
+#include <allegro5/allegro_ttf.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +43,13 @@ typedef enum
     ENEMY_BACTERIUM = 2
 } EnemyType;
 
+typedef enum
+{
+    PROJECTILE_WHITE_BALL = 0,
+    PROJECTILE_BLUE_MAGIC = 1,
+    PROJECTILE_RED_LASER = 2
+} ProjectileType;
+
 typedef struct
 {
     int row;
@@ -68,6 +77,7 @@ typedef struct
     int row;
     float speed;
     bool active;
+    ProjectileType type;
 } Projectile;
 
 static Defender defenders[MAX_DEFENDERS];
@@ -76,12 +86,14 @@ static Projectile projectiles[MAX_PROJECTILES];
 
 static DefenderType selected_defender = DEFENDER_WHITE_BLOOD_CELL;
 static float enemy_spawn_timer = 0.0f;
+static float placement_cooldown = 0.0f;
 static float delta_time = 1.0f / 60.0f;
 
 static float cell_width = 0.0f;
 static float cell_height = 0.0f;
 static int screen_width_cached = 0;
 static int screen_height_cached = 0;
+static ALLEGRO_FONT* font = NULL;
 
 static void init_arrays(void)
 {
@@ -142,6 +154,11 @@ static void spawn_enemy(int screen_width)
 
 static void add_defender(int row, int col, DefenderType type)
 {
+    if (placement_cooldown > 0.0f)
+    {
+        return;
+    }
+
     for (int i = 0; i < MAX_DEFENDERS; i++)
     {
         if (defenders[i].active && defenders[i].row == row && defenders[i].col == col)
@@ -159,13 +176,14 @@ static void add_defender(int row, int col, DefenderType type)
             defenders[i].col = col;
             defenders[i].type = type;
             defenders[i].shoot_timer = 0.0f;
+            placement_cooldown = 1.0f;
             printf("Defensor colocado em [%d][%d]\n", row, col);
             break;
         }
     }
 }
 
-static void shoot_projectile(int row, int col)
+static void shoot_projectile(int row, int col, DefenderType defender_type)
 {
     for (int i = 0; i < MAX_PROJECTILES; i++)
     {
@@ -175,8 +193,54 @@ static void shoot_projectile(int row, int col)
             projectiles[i].row = row;
             projectiles[i].x = col * (cell_width + 1.0f) + cell_width;
             projectiles[i].y = GRID_START_Y + row * cell_height + cell_height / 2;
-            projectiles[i].speed = 200.0f;
+
+            if (defender_type == DEFENDER_WHITE_BLOOD_CELL)
+            {
+                projectiles[i].type = PROJECTILE_WHITE_BALL;
+                projectiles[i].speed = 180.0f;
+            }
+            else if (defender_type == DEFENDER_EOSINOPHIL)
+            {
+                projectiles[i].type = PROJECTILE_BLUE_MAGIC;
+                projectiles[i].speed = 220.0f;
+            }
+            else
+            {
+                projectiles[i].type = PROJECTILE_RED_LASER;
+                projectiles[i].speed = 300.0f;
+            }
             break;
+        }
+    }
+}
+
+static void check_enemy_defender_collision(void)
+{
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        if (enemies[i].active)
+        {
+            for (int j = 0; j < MAX_DEFENDERS; j++)
+            {
+                if (defenders[j].active && defenders[j].row == enemies[i].row)
+                {
+                    float defender_x = defenders[j].col * (cell_width + 1.0f) + cell_width / 2;
+                    float defender_y =
+                        GRID_START_Y + defenders[j].row * cell_height + cell_height / 2;
+
+                    float dist =
+                        sqrt(pow(enemies[i].x - defender_x, 2) + pow(enemies[i].y - defender_y, 2));
+
+                    if (dist < 40.0f)
+                    {
+                        defenders[j].active = false;
+                        enemies[i].active = false;
+                        printf("Defensor destruído em [%d][%d]!\n", defenders[j].row,
+                               defenders[j].col);
+                        break;
+                    }
+                }
+            }
         }
     }
 }
@@ -203,7 +267,7 @@ static void update_defenders(void)
 
                 if (enemy_in_row)
                 {
-                    shoot_projectile(defenders[i].row, defenders[i].col);
+                    shoot_projectile(defenders[i].row, defenders[i].col, defenders[i].type);
                 }
 
                 defenders[i].shoot_timer = 0.0f;
@@ -212,7 +276,7 @@ static void update_defenders(void)
     }
 }
 
-static void update_enemies(void)
+static void update_enemies(bool* running)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
@@ -222,7 +286,9 @@ static void update_enemies(void)
 
             if (enemies[i].x < -50)
             {
-                enemies[i].active = false;
+                printf("Inimigo chegou ao final! Game Over!\n");
+                *running = false;
+                return;
             }
         }
     }
@@ -277,6 +343,12 @@ static void init(ALLEGRO_DISPLAY* display)
     }
 
     load_images();
+
+    font = al_create_builtin_font();
+    if (!font)
+    {
+        fprintf(stderr, "Erro ao criar fonte!\n");
+    }
 
     if (display)
     {
@@ -346,9 +418,15 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             return;
         }
 
+        if (placement_cooldown > 0.0f)
+        {
+            placement_cooldown -= delta_time;
+        }
+
         update_defenders();
-        update_enemies();
+        update_enemies(running);
         update_projectiles(screen_width_cached);
+        check_enemy_defender_collision();
 
         enemy_spawn_timer += delta_time;
         if (enemy_spawn_timer >= 2.0f)
@@ -448,9 +526,43 @@ static void draw(int screen_width, int screen_height)
         {
             if (projectiles[i].active)
             {
-                al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 5.0f,
-                                      al_map_rgb(255, 255, 0));
+                if (projectiles[i].type == PROJECTILE_WHITE_BALL)
+                {
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 12.0f,
+                                          al_map_rgb(255, 255, 255));
+                    al_draw_circle(projectiles[i].x, projectiles[i].y, 12.0f,
+                                   al_map_rgb(200, 200, 200), 2.0f);
+                }
+                else if (projectiles[i].type == PROJECTILE_BLUE_MAGIC)
+                {
+                    for (int j = 0; j < 3; j++)
+                    {
+                        float offset = (j - 1) * 5.0f;
+                        al_draw_filled_circle(projectiles[i].x + offset, projectiles[i].y + offset,
+                                              8.0f - j * 2, al_map_rgba(0, 100 + j * 50, 255, 200));
+                    }
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 6.0f,
+                                          al_map_rgb(150, 200, 255));
+                }
+                else if (projectiles[i].type == PROJECTILE_RED_LASER)
+                {
+                    al_draw_filled_rectangle(projectiles[i].x - 15, projectiles[i].y - 3,
+                                             projectiles[i].x + 15, projectiles[i].y + 3,
+                                             al_map_rgb(255, 50, 50));
+                    al_draw_filled_rectangle(projectiles[i].x - 12, projectiles[i].y - 1.5f,
+                                             projectiles[i].x + 12, projectiles[i].y + 1.5f,
+                                             al_map_rgb(255, 150, 150));
+                }
             }
+        }
+
+        if (placement_cooldown > 0.0f && font)
+        {
+            char cooldown_text[32];
+            sprintf(cooldown_text, "Cooldown: %.1fs", placement_cooldown);
+            al_draw_filled_rectangle(10, screen_height - 40, 200, screen_height - 10,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_text(font, al_map_rgb(255, 255, 0), 45, screen_height - 30, 0, cooldown_text);
         }
     }
 }
@@ -461,6 +573,12 @@ static void destroy(void)
     {
         al_destroy_bitmap(background);
         background = NULL;
+    }
+
+    if (font)
+    {
+        al_destroy_font(font);
+        font = NULL;
     }
 
     for (int i = 0; i < 3; i++)
