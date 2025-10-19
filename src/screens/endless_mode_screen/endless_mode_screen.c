@@ -31,7 +31,7 @@ static ALLEGRO_BITMAP* enemy_images[3] = {NULL, NULL, NULL};
 #define MAX_ENEMIES 50
 #define MAX_PROJECTILES 100
 #define MAX_PARTICLES 200
-#define MAX_ORBS 30
+#define MAX_ORBS 60
 
 typedef enum
 {
@@ -119,6 +119,7 @@ static float game_time = 0.0f;
 static float spawn_interval = 4.0f;
 static int enemies_killed = 0;
 static int vitamins = 100;
+static bool game_over = false;
 
 static float cell_width = 0.0f;
 static float cell_height = 0.0f;
@@ -234,8 +235,8 @@ static void spawn_enemy(int screen_width)
                 enemies[i].active = true;
                 enemies[i].row = rand() % GRID_ROWS;
                 enemies[i].type = rand() % 3;
-                enemies[i].x = screen_width + (spawn * 80);
-                enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2;
+                enemies[i].x = (float)screen_width + (spawn * 80.0f);
+                enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2.0f;
 
                 float base_speed = 35.0f + (rand() % 25);
                 float speed_multiplier = 1.0f + (game_time / 60.0f);
@@ -282,10 +283,6 @@ static void add_defender(int row, int col, DefenderType type)
             placement_cooldown = 1.0f;
             vitamins -= cost;
 
-            float x = col * (cell_width + 1.0f) + cell_width / 2;
-            float y = GRID_START_Y + row * cell_height + cell_height / 2;
-            spawn_particle_burst(x, y, 15, al_map_rgb(100, 200, 100));
-
             selected_defender = -1;
 
             printf("Defensor colocado em [%d][%d]. Vitaminas: %d\n", row, col, vitamins);
@@ -303,7 +300,7 @@ static void shoot_projectile(int row, int col, DefenderType defender_type)
             projectiles[i].active = true;
             projectiles[i].row = row;
             projectiles[i].x = col * (cell_width + 1.0f) + cell_width;
-            projectiles[i].y = GRID_START_Y + row * cell_height + cell_height / 2;
+            projectiles[i].y = GRID_START_Y + row * cell_height + cell_height / 2.0f;
             projectiles[i].animation_time = 0.0f;
 
             if (defender_type == DEFENDER_WHITE_BLOOD_CELL)
@@ -336,9 +333,9 @@ static void check_enemy_defender_collision(void)
             {
                 if (defenders[j].active && defenders[j].row == enemies[i].row)
                 {
-                    float defender_x = defenders[j].col * (cell_width + 1.0f) + cell_width / 2;
+                    float defender_x = defenders[j].col * (cell_width + 1.0f) + cell_width / 2.0f;
                     float defender_y =
-                        GRID_START_Y + defenders[j].row * cell_height + cell_height / 2;
+                        GRID_START_Y + defenders[j].row * cell_height + cell_height / 2.0f;
 
                     float dist =
                         sqrt(pow(enemies[i].x - defender_x, 2) + pow(enemies[i].y - defender_y, 2));
@@ -392,7 +389,7 @@ static void update_defenders(void)
     }
 }
 
-static void update_enemies(bool* running)
+static void update_enemies(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
@@ -400,12 +397,10 @@ static void update_enemies(bool* running)
         {
             enemies[i].x -= enemies[i].speed * delta_time;
 
-            if (enemies[i].x < -50)
+            if (enemies[i].x < -50.0f)
             {
-                current_screen->destroy();
-
-                current_screen = &LobbyScreen;
-                current_screen->init(NULL);
+                enemies[i].active = false;
+                game_over = true;
             }
         }
     }
@@ -420,7 +415,7 @@ static void update_projectiles(int screen_width)
             projectiles[i].x += projectiles[i].speed * delta_time;
             projectiles[i].animation_time += delta_time;
 
-            if (projectiles[i].x > screen_width)
+            if (projectiles[i].x > (float)screen_width)
             {
                 projectiles[i].active = false;
                 continue;
@@ -475,7 +470,7 @@ static void update_orbs(void)
             orbs[i].y += orbs[i].vy * delta_time;
             orbs[i].rotation += 5.0f;
 
-            if (orbs[i].y > screen_height_cached + 50.0f)
+            if (orbs[i].y > (float)screen_height_cached + 50.0f)
             {
                 orbs[i].active = false;
             }
@@ -494,6 +489,7 @@ static void init(ALLEGRO_DISPLAY* display)
     spawn_interval = 4.0f;
     enemies_killed = 0;
     vitamins = 100;
+    game_over = false;
 
     background = al_load_bitmap("assets/images/maps/initial.png");
     if (!background)
@@ -535,7 +531,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
     if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
     {
-        if (cell_width <= 0 || cell_height <= 0 || screen_width_cached <= 0)
+        if (cell_width <= 0.0f || cell_height <= 0.0f || screen_width_cached <= 0)
         {
             return;
         }
@@ -578,6 +574,10 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                         printf("Defensor selecionado: %d (Custo: %d)\n", selected_defender,
                                defender_costs[i]);
                     }
+                    else
+                    {
+                        selected_defender = -1;
+                    }
                     break;
                 }
             }
@@ -618,9 +618,9 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         }
 
         update_defenders();
-        update_enemies(running);
+        update_enemies();
 
-        if (!(*running))
+        if (game_over)
         {
             printf("Game Over! Vacinas coletadas: %d\n", PLAYER_ENTITY->vaccines);
             current_screen->destroy();
@@ -641,7 +641,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             enemy_spawn_timer = 0.0f;
         }
 
-        if (rand() % 100 < 1)
+        if (rand() % 1000 < 3)
         {
             spawn_orb();
         }
@@ -675,18 +675,25 @@ static void draw(int screen_width, int screen_height)
             int x2 = x1 + selector_width;
 
             ALLEGRO_COLOR color;
+            ALLEGRO_COLOR border_color;
+            ALLEGRO_COLOR text_color;
+
             if (vitamins >= defender_costs[i])
             {
                 color = (selected_defender == i) ? al_map_rgba(0, 255, 0, 180)
                                                  : al_map_rgba(80, 80, 80, 150);
+                border_color = al_map_rgb(255, 255, 255);
+                text_color = al_map_rgb(255, 215, 0);
             }
             else
             {
-                color = al_map_rgba(50, 50, 50, 100);
+                color = al_map_rgba(40, 40, 40, 80);
+                border_color = al_map_rgb(100, 100, 100);
+                text_color = al_map_rgb(150, 150, 150);
             }
 
             al_draw_filled_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, color);
-            al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, al_map_rgb(255, 255, 255), 2.0f);
+            al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, border_color, 2.0f);
 
             if (defender_images[i])
             {
@@ -699,8 +706,7 @@ static void draw(int screen_width, int screen_height)
             sprintf(cost_text, "C:%d", defender_costs[i]);
             if (font)
             {
-                al_draw_text(font, al_map_rgb(255, 215, 0), x1 + 50, 50, ALLEGRO_ALIGN_CENTER,
-                             cost_text);
+                al_draw_text(font, text_color, x1 + 50, 50, ALLEGRO_ALIGN_CENTER, cost_text);
             }
         }
 
@@ -751,8 +757,8 @@ static void draw(int screen_width, int screen_height)
                 al_draw_scaled_bitmap(defender_images[defenders[i].type], 0, 0,
                                       al_get_bitmap_width(defender_images[defenders[i].type]),
                                       al_get_bitmap_height(defender_images[defenders[i].type]),
-                                      x + (cell_width - img_w) / 2,
-                                      y + (cell_height - 10 - img_h) / 2, img_w, img_h, 0);
+                                      x + (cell_width - img_w) / 2.0f,
+                                      y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
             }
         }
 
@@ -764,8 +770,8 @@ static void draw(int screen_width, int screen_height)
                 al_draw_scaled_bitmap(enemy_images[enemies[i].type], 0, 0,
                                       al_get_bitmap_width(enemy_images[enemies[i].type]),
                                       al_get_bitmap_height(enemy_images[enemies[i].type]),
-                                      enemies[i].x - size / 2, enemies[i].y - size / 2, size, size,
-                                      0);
+                                      enemies[i].x - size / 2.0f, enemies[i].y - size / 2.0f, size,
+                                      size, 0);
             }
         }
 
