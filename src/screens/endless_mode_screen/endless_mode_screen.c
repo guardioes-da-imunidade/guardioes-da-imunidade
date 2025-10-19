@@ -31,6 +31,7 @@ static ALLEGRO_BITMAP* enemy_images[3] = {NULL, NULL, NULL};
 #define MAX_ENEMIES 50
 #define MAX_PROJECTILES 100
 #define MAX_PARTICLES 200
+#define MAX_ORBS 30
 
 typedef enum
 {
@@ -63,6 +64,15 @@ typedef struct
     float max_life;
     ALLEGRO_COLOR color;
 } Particle;
+
+typedef struct
+{
+    float x;
+    float y;
+    float vy;
+    bool active;
+    float rotation;
+} Orb;
 
 typedef struct
 {
@@ -99,20 +109,24 @@ static Defender defenders[MAX_DEFENDERS];
 static Enemy enemies[MAX_ENEMIES];
 static Projectile projectiles[MAX_PROJECTILES];
 static Particle particles[MAX_PARTICLES];
+static Orb orbs[MAX_ORBS];
 
-static DefenderType selected_defender = DEFENDER_WHITE_BLOOD_CELL;
+static DefenderType selected_defender = -1;
 static float enemy_spawn_timer = 0.0f;
 static float placement_cooldown = 0.0f;
 static float delta_time = 1.0f / 60.0f;
 static float game_time = 0.0f;
-static float spawn_interval = 2.0f;
+static float spawn_interval = 4.0f;
 static int enemies_killed = 0;
+static int vitamins = 100;
 
 static float cell_width = 0.0f;
 static float cell_height = 0.0f;
 static int screen_width_cached = 0;
 static int screen_height_cached = 0;
 static ALLEGRO_FONT* font = NULL;
+
+static const int defender_costs[3] = {50, 75, 100};
 
 static void init_arrays(void)
 {
@@ -131,6 +145,10 @@ static void init_arrays(void)
     for (int i = 0; i < MAX_PARTICLES; i++)
     {
         particles[i].life = 0.0f;
+    }
+    for (int i = 0; i < MAX_ORBS; i++)
+    {
+        orbs[i].active = false;
     }
 }
 
@@ -153,6 +171,22 @@ static void spawn_particle_burst(float x, float y, int count, ALLEGRO_COLOR colo
                 particles[j].color = color;
                 break;
             }
+        }
+    }
+}
+
+static void spawn_orb(void)
+{
+    for (int i = 0; i < MAX_ORBS; i++)
+    {
+        if (!orbs[i].active)
+        {
+            orbs[i].active = true;
+            orbs[i].x = 50.0f + (rand() % (screen_width_cached - 100));
+            orbs[i].y = -30.0f;
+            orbs[i].vy = 80.0f + (rand() % 40);
+            orbs[i].rotation = 0.0f;
+            break;
         }
     }
 }
@@ -221,6 +255,13 @@ static void add_defender(int row, int col, DefenderType type)
         return;
     }
 
+    int cost = defender_costs[type];
+    if (vitamins < cost)
+    {
+        printf("Vitaminas insuficientes! Custo: %d, Disponível: %d\n", cost, vitamins);
+        return;
+    }
+
     for (int i = 0; i < MAX_DEFENDERS; i++)
     {
         if (defenders[i].active && defenders[i].row == row && defenders[i].col == col)
@@ -239,12 +280,15 @@ static void add_defender(int row, int col, DefenderType type)
             defenders[i].type = type;
             defenders[i].shoot_timer = 0.0f;
             placement_cooldown = 1.0f;
+            vitamins -= cost;
 
             float x = col * (cell_width + 1.0f) + cell_width / 2;
             float y = GRID_START_Y + row * cell_height + cell_height / 2;
             spawn_particle_burst(x, y, 15, al_map_rgb(100, 200, 100));
 
-            printf("Defensor colocado em [%d][%d]\n", row, col);
+            selected_defender = -1;
+
+            printf("Defensor colocado em [%d][%d]. Vitaminas: %d\n", row, col, vitamins);
             break;
         }
     }
@@ -422,6 +466,23 @@ static void update_particles(void)
     }
 }
 
+static void update_orbs(void)
+{
+    for (int i = 0; i < MAX_ORBS; i++)
+    {
+        if (orbs[i].active)
+        {
+            orbs[i].y += orbs[i].vy * delta_time;
+            orbs[i].rotation += 5.0f;
+
+            if (orbs[i].y > screen_height_cached + 50.0f)
+            {
+                orbs[i].active = false;
+            }
+        }
+    }
+}
+
 static void init(ALLEGRO_DISPLAY* display)
 {
     current_game_state = GAME_PLAYING;
@@ -430,8 +491,9 @@ static void init(ALLEGRO_DISPLAY* display)
     init_arrays();
 
     game_time = 0.0f;
-    spawn_interval = 2.0f;
+    spawn_interval = 4.0f;
     enemies_killed = 0;
+    vitamins = 100;
 
     background = al_load_bitmap("assets/images/maps/initial.png");
     if (!background)
@@ -481,6 +543,22 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         int mouse_x = event->mouse.x;
         int mouse_y = event->mouse.y;
 
+        for (int i = 0; i < MAX_ORBS; i++)
+        {
+            if (orbs[i].active)
+            {
+                float dist = sqrt(pow(mouse_x - orbs[i].x, 2) + pow(mouse_y - orbs[i].y, 2));
+                if (dist < 20.0f)
+                {
+                    vitamins += 75;
+                    orbs[i].active = false;
+                    spawn_particle_burst(orbs[i].x, orbs[i].y, 15, al_map_rgb(255, 215, 0));
+                    printf("Orbe coletado! Vitaminas: %d\n", vitamins);
+                    return;
+                }
+            }
+        }
+
         if (mouse_y < SELECTOR_HEIGHT)
         {
             int selector_width = 100;
@@ -494,8 +572,12 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                 if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 &&
                     mouse_y <= SELECTOR_HEIGHT - 10)
                 {
-                    selected_defender = (DefenderType)i;
-                    printf("Defensor selecionado: %d\n", selected_defender);
+                    if (vitamins >= defender_costs[i])
+                    {
+                        selected_defender = (DefenderType)i;
+                        printf("Defensor selecionado: %d (Custo: %d)\n", selected_defender,
+                               defender_costs[i]);
+                    }
                     break;
                 }
             }
@@ -509,7 +591,10 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
             if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS)
             {
-                add_defender(row, col, selected_defender);
+                if (selected_defender != -1)
+                {
+                    add_defender(row, col, selected_defender);
+                }
             }
         }
     }
@@ -523,7 +608,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
         game_time += delta_time;
 
-        spawn_interval = 2.0f - (game_time / 50.0f);
+        spawn_interval = 4.0f - (game_time / 80.0f);
         if (spawn_interval < 0.3f)
             spawn_interval = 0.3f;
 
@@ -546,6 +631,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
         update_projectiles(screen_width_cached);
         update_particles();
+        update_orbs();
         check_enemy_defender_collision();
 
         enemy_spawn_timer += delta_time;
@@ -553,6 +639,11 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         {
             spawn_enemy(screen_width_cached);
             enemy_spawn_timer = 0.0f;
+        }
+
+        if (rand() % 100 < 1)
+        {
+            spawn_orb();
         }
     }
 }
@@ -583,8 +674,16 @@ static void draw(int screen_width, int screen_height)
             int x1 = start_x + i * (selector_width + 10);
             int x2 = x1 + selector_width;
 
-            ALLEGRO_COLOR color = (selected_defender == i) ? al_map_rgba(0, 255, 0, 180)
-                                                           : al_map_rgba(80, 80, 80, 150);
+            ALLEGRO_COLOR color;
+            if (vitamins >= defender_costs[i])
+            {
+                color = (selected_defender == i) ? al_map_rgba(0, 255, 0, 180)
+                                                 : al_map_rgba(80, 80, 80, 150);
+            }
+            else
+            {
+                color = al_map_rgba(50, 50, 50, 100);
+            }
 
             al_draw_filled_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, color);
             al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, al_map_rgb(255, 255, 255), 2.0f);
@@ -594,6 +693,14 @@ static void draw(int screen_width, int screen_height)
                 al_draw_scaled_bitmap(
                     defender_images[i], 0, 0, al_get_bitmap_width(defender_images[i]),
                     al_get_bitmap_height(defender_images[i]), x1 + 35, 15, 35, 35, 0);
+            }
+
+            char cost_text[16];
+            sprintf(cost_text, "C:%d", defender_costs[i]);
+            if (font)
+            {
+                al_draw_text(font, al_map_rgb(255, 215, 0), x1 + 50, 50, ALLEGRO_ALIGN_CENTER,
+                             cost_text);
             }
         }
 
@@ -608,6 +715,16 @@ static void draw(int screen_width, int screen_height)
         {
             al_draw_text(font, al_map_rgb(255, 255, 255), screen_width - 80, 25,
                          ALLEGRO_ALIGN_CENTER, time_text);
+        }
+
+        char vitamins_text[32];
+        sprintf(vitamins_text, "Vitaminas: %d", vitamins);
+        al_draw_filled_rectangle(screen_width - 150, 60, screen_width - 10, 100,
+                                 al_map_rgba(0, 0, 0, 180));
+        if (font)
+        {
+            al_draw_text(font, al_map_rgb(255, 215, 0), screen_width - 80, 78, ALLEGRO_ALIGN_CENTER,
+                         vitamins_text);
         }
 
         for (int row = 0; row < GRID_ROWS; row++)
@@ -720,6 +837,20 @@ static void draw(int screen_width, int screen_height)
                     al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 3.0f,
                                           al_map_rgb(255, 200, 200));
                 }
+            }
+        }
+
+        for (int i = 0; i < MAX_ORBS; i++)
+        {
+            if (orbs[i].active)
+            {
+                float cos_rot = cos(orbs[i].rotation * 3.14159f / 180.0f);
+                float glow = sin(orbs[i].rotation * 3.14159f / 180.0f) * 5.0f;
+
+                al_draw_filled_circle(orbs[i].x, orbs[i].y, 15.0f + glow,
+                                      al_map_rgba(255, 215, 0, 150));
+                al_draw_filled_circle(orbs[i].x, orbs[i].y, 12.0f, al_map_rgb(255, 230, 50));
+                al_draw_circle(orbs[i].x, orbs[i].y, 15.0f + glow, al_map_rgb(255, 200, 0), 2.0f);
             }
         }
 
