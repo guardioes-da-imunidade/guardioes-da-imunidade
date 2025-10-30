@@ -141,7 +141,8 @@ static ALLEGRO_FONT* font = NULL;
 static ALLEGRO_FONT* title_font = NULL;
 
 static const int defender_costs[3] = {50, 75, 100};
-static const int defender_damage[3] = {1, 2, 3};
+static const int defender_damage[3] = {1, 3, 5};
+static const float defender_shoot_cooldown[3] = {3.0f, 2.5f, 2.0f};
 static const char* defender_paths[10] = {
     "assets/images/defenders/white_blood_cell.png", "assets/images/defenders/eosinophil.png",
     "assets/images/defenders/basophil.png",         "assets/images/defenders/defender_3.png",
@@ -178,8 +179,8 @@ static void load_in_use_defenders(void)
 static void configure_stage(int stage_number)
 {
     stage_config.stage_number = stage_number;
-    stage_config.total_waves = 3 + (stage_number / 2);
-    stage_config.enemies_per_wave = 5 + stage_number;
+    stage_config.total_waves = 3 + stage_number;
+    stage_config.enemies_per_wave = 5 + (stage_number * 2);
     stage_config.wave_interval = 15.0f;
 }
 
@@ -277,9 +278,9 @@ static void spawn_wave_enemy(int screen_width)
             enemies[i].type = rand() % 3;
             enemies[i].x = (float)screen_width;
             enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2.0f;
-            float base_speed = 35.0f + (stage_config.stage_number * 3.0f);
+            float base_speed = 35.0f + (stage_config.stage_number * 5.0f);
             enemies[i].speed = base_speed;
-            enemies[i].health = 4 + (stage_config.stage_number / 2);
+            enemies[i].health = 3 + stage_config.stage_number;
             enemies_spawned_in_wave++;
             break;
         }
@@ -339,12 +340,12 @@ static void shoot_projectile(int row, int col, int defender_slot)
             else if (defender_slot == 1)
             {
                 projectiles[i].type = PROJECTILE_BLUE_MAGIC;
-                projectiles[i].speed = 220.0f;
+                projectiles[i].speed = 240.0f;
             }
             else
             {
                 projectiles[i].type = PROJECTILE_RED_LASER;
-                projectiles[i].speed = 300.0f;
+                projectiles[i].speed = 320.0f;
             }
             break;
         }
@@ -391,7 +392,10 @@ static void update_defenders(void)
         {
             defenders[i].shoot_timer += delta_time;
 
-            if (defenders[i].shoot_timer >= 3.0f)
+            int slot = defenders[i].defender_slot;
+            float cooldown = (slot >= 0 && slot < 3) ? defender_shoot_cooldown[slot] : 3.0f;
+
+            if (defenders[i].shoot_timer >= cooldown)
             {
                 bool enemy_in_row = false;
 
@@ -561,9 +565,14 @@ static void update(ALLEGRO_EVENT* event, bool* running)
     {
         if (event->type == ALLEGRO_EVENT_KEY_DOWN || event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
         {
-            if (stage_complete && PLAYER_ENTITY->current_stage == stage_config.stage_number)
+            if (stage_complete)
             {
-                PLAYER_ENTITY->current_stage++;
+                PLAYER_ENTITY->vaccines += enemies_killed_this_stage;
+
+                if (PLAYER_ENTITY->current_stage == stage_config.stage_number)
+                {
+                    PLAYER_ENTITY->current_stage++;
+                }
             }
 
             current_screen->destroy();
@@ -833,13 +842,13 @@ static void draw(int screen_width, int screen_height)
                 }
                 else if (projectiles[i].type == PROJECTILE_BLUE_MAGIC)
                 {
-                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 8.0f,
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 10.0f,
                                           al_map_rgb(100, 200, 255));
                 }
                 else if (projectiles[i].type == PROJECTILE_RED_LASER)
                 {
-                    al_draw_filled_rectangle(projectiles[i].x - 20, projectiles[i].y - 3,
-                                             projectiles[i].x + 20, projectiles[i].y + 3,
+                    al_draw_filled_rectangle(projectiles[i].x - 25, projectiles[i].y - 4,
+                                             projectiles[i].x + 25, projectiles[i].y + 4,
                                              al_map_rgb(255, 30, 30));
                 }
             }
@@ -872,7 +881,13 @@ static void draw(int screen_width, int screen_height)
         {
             al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
                          screen_height / 2 - 50, ALLEGRO_ALIGN_CENTER, "FASE COMPLETA!");
-            al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, screen_height / 2 + 20,
+
+            char reward_text[64];
+            sprintf(reward_text, "Vacinas ganhas: %d", enemies_killed_this_stage);
+            al_draw_text(font, al_map_rgb(255, 215, 0), screen_width / 2, screen_height / 2,
+                         ALLEGRO_ALIGN_CENTER, reward_text);
+
+            al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, screen_height / 2 + 30,
                          ALLEGRO_ALIGN_CENTER, "Pressione qualquer tecla para continuar");
         }
     }
