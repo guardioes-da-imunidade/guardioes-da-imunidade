@@ -1,43 +1,59 @@
 #include <allegro5/allegro5.h>
+#include <allegro5/allegro_image.h>
+#include <allegro5/allegro_native_dialog.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
+#include <stdbool.h>
+#include <stdio.h>
 
-#include "src/core/event.h"
+#include "src/core/game.h"
 #include "src/core/init.h"
-#include "src/systems/resource.h"
+#include "src/entities/player/player-entity.h"
+#include "src/screens/base/menu.h"
+
+Screen *current_screen = &MenuScreen;
+PlayerEntity *PLAYER_ENTITY = NULL;
 
 int main()
 {
-  int screen_width, screen_height;
+    int screen_width, screen_height;
 
-  ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
-  if (!display)
-    return 1;
+    ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
 
-  ALLEGRO_BITMAP *logo = load_bitmap_centered("assets/logos/logo.png", display);
-  if (!logo)
-    return 1;
+    ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
+    ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
 
-  int logo_width = al_get_bitmap_width(logo);
-  int logo_height = al_get_bitmap_height(logo);
-  float logo_x_position = (screen_width - logo_width) / 2.00f;
-  float logo_y_position = (screen_height - logo_height) / 2.00f;
+    al_register_event_source(event_queue, al_get_display_event_source(display));
+    al_register_event_source(event_queue, al_get_timer_event_source(timer));
+    al_register_event_source(event_queue, al_get_keyboard_event_source());
+    al_register_event_source(event_queue, al_get_mouse_event_source());
+    al_start_timer(timer);
 
-  ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
-  al_register_event_source(event_queue, al_get_display_event_source(display));
-  al_register_event_source(event_queue, al_get_keyboard_event_source());
+    current_screen->init(display);
 
-  bool running = true;
-  while (running)
-  {
-    process_events(event_queue, &running);
+    bool running = true;
 
-    al_clear_to_color(al_map_rgb(251, 247, 238));
-    al_draw_bitmap(logo, logo_x_position, logo_y_position, 0);
-    al_flip_display();
-  }
+    init_player();
 
-  al_destroy_bitmap(logo);
-  al_destroy_display(display);
-  al_destroy_event_queue(event_queue);
+    while (running)
+    {
+        ALLEGRO_EVENT current_event;
+        while (al_get_next_event(event_queue, &current_event))
+        {
+            current_screen->update(&current_event, &running);
+        }
 
-  return 0;
+        al_clear_to_color(al_map_rgb(0, 0, 0));
+        current_screen->draw(screen_width, screen_height);
+        al_flip_display();
+    }
+
+    current_screen->destroy();
+
+    free(PLAYER_ENTITY);
+    al_destroy_display(display);
+    al_destroy_event_queue(event_queue);
+    al_destroy_timer(timer);
+
+    return 0;
 }
