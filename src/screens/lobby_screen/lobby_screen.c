@@ -13,6 +13,10 @@
 #include "../../entities/player/player-entity.h"
 #include "../base/menu.h"
 #include "../endless_mode_screen/endless_mode_screen.h"
+#include "../stage_screen/stage_screen.h"
+
+extern GameState current_game_state;
+extern Screen* current_screen;
 
 extern GameState current_game_state;
 extern Screen* current_screen;
@@ -301,7 +305,10 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                     }
                     else
                     {
-                        printf("Fase %d clicada\n", level_nodes[i].level_number);
+                        set_current_stage(level_nodes[i].level_number);
+                        current_screen->destroy();
+                        current_screen = &StageScreen;
+                        current_screen->init(NULL);
                     }
                     break;
                 }
