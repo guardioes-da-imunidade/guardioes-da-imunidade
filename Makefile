@@ -12,7 +12,8 @@ SRC = main.c \
 	src/screens/lobby_screen/lobby_screen.c \
     src/systems/resource.c \
 	src/entities/player/player-entity.c \
-	src/screens/endless_mode_screen/endless_mode_screen.c
+	src/screens/endless_mode_screen/endless_mode_screen.c \
+	src/screens/stage_screen/stage_screen.c
 
 CC = gcc
 
