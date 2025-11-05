@@ -5,7 +5,7 @@ static int mouse_y = 0;
 static bool mouse_down = false;
 static bool mouse_clicked = false;
 
-void input_update(ALLEGRO_EVENT *event)
+void input_update(ALLEGRO_EVENT* event)
 {
     switch (event->type)
     {
@@ -24,6 +24,9 @@ void input_update(ALLEGRO_EVENT *event)
             }
 
             break;
+
+        case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
+            mouse_clicked = event->mouse.button == 1;
 
             break;
 
