@@ -7,12 +7,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "core/palette.h"
-#include "core/ui/button.h"
-#include "entities/entities.h"
-#include "screens/screen.h"
-#include "screens/base/menu.h"
-#include "screens/lobby_screen/lobby_screen.h"
+#include "../../core/palette.h"
+#include "../../core/ui/button.h"
+#include "../../entities/entities.h"
+#include "../screen.h"
+#include "../base/menu.h"
+#include "../lobby_screen/lobby_screen.h"
 
 extern Screen Bestiary;
 

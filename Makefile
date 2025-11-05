@@ -3,8 +3,13 @@ TARGET = game
 SRC = main.c \
       src/core/init.c \
       src/core/game.c \
+      src/core/palette.c \
+      src/core/input.c \
+      src/core/ui/button.c \
+      src/entities/entities.c \
       src/screens/base/menu.c \
       src/screens/base/config.c \
+      src/screens/bestiary/bestiary.c \
       src/screens/game_screen/game_screen.c \
 	    src/systems/sound_effect.c \
 	    src/systems/music.c \
