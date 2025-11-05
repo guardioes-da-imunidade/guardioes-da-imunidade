@@ -44,6 +44,14 @@ int main()
         ALLEGRO_EVENT event;
         while (al_get_next_event(event_queue, &event))
         {
+            if (event.type == ALLEGRO_EVENT_DISPLAY_RESIZE)
+            {
+                al_acknowledge_resize(event.display.source);
+
+                screen_width = event.display.width;
+                screen_height = event.display.height;
+            }
+
             input_update(&event);
             current_screen->update(&event, &running);
         }
