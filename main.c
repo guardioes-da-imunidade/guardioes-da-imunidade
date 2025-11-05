@@ -10,6 +10,7 @@
 #include "src/core/init.h"
 #include "src/core/input.h"
 #include "src/core/palette.h"
+#include "src/core/typography.h"
 #include "src/entities/player/player-entity.h"
 #include "src/screens/base/menu.h"
 
@@ -22,6 +23,7 @@ int main()
 
     ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
 
+    init_fonts();
     init_colors();
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
