@@ -1,6 +1,6 @@
 #include "button.h"
 
-void draw_button(Button *button)
+void draw_button(Button* button)
 {
     int mouse_x = get_mouse_x();
     int mouse_y = get_mouse_y();
@@ -26,7 +26,10 @@ void draw_button(Button *button)
 
     bool is_inside_x = mouse_x >= button->x && mouse_x <= button_right;
     bool is_inside_y = mouse_y >= button->y && mouse_y <= button_bottom;
+    bool is_intersecting = is_inside_x && is_inside_y;
 
-    if (clicked && is_inside_x && is_inside_y && button->on_click)
+    if (clicked && is_intersecting && button->on_click)
+    {
         button->on_click(button->context);
+    }
 }
