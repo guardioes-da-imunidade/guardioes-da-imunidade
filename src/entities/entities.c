@@ -116,7 +116,9 @@ void load_microorganisms()
         defenders[i].base.image = al_load_bitmap(defenders[i].base.image_path);
 
         if (!defenders[i].base.image)
+        {
             printf("Falha ao carregar imagem: %s\n", defenders[i].base.image_path);
+        }
 
         microorganisms_index++;
     }
@@ -129,7 +131,9 @@ void load_microorganisms()
         enemies[i].base.image = al_load_bitmap(enemies[i].base.image_path);
 
         if (!enemies[i].base.image)
+        {
             printf("Falha ao carregar imagem: %s\n", enemies[i].base.image_path);
+        }
 
         microorganisms_index++;
     }
