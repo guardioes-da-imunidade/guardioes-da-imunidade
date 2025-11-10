@@ -50,10 +50,10 @@ static void draw(int screen_width, int screen_height)
     }
 
     Button back_button = {
-        .x = 0,
-        .y = 0,
-        .width = 200,
-        .height = 60,
+        .x = 70,
+        .y = screen_height - 300,
+        .width = 160,
+        .height = 75,
         .fill_color = &COLOR_YELLOW,
         .text = {.content = "Voltar", .color = &COLOR_BLACK, .font = fonts[FONT_H2]},
         .border = {.border_color = &COLOR_BLACK, .thickness = 2},
@@ -66,12 +66,12 @@ static void draw(int screen_width, int screen_height)
     float divider_x = screen_width / 2;
     al_draw_line(divider_x, 0, divider_x, screen_height, COLOR_BLACK, 2);
 
-    float padding = 250;
+    float padding = 200;
     float button_spacing_x = 15;
     float button_spacing_y = 15;
     float button_width = 150;
     float button_height = 50;
-    int buttons_per_row = 4;
+    int buttons_per_row = 2;
 
     for (int i = 0; i < total_microorganisms; i++)
     {
@@ -86,12 +86,12 @@ static void draw(int screen_width, int screen_height)
         ALLEGRO_COLOR* fill_color;
         if (microorganisms[i].is_defender)
         {
-            entity = &((Defender*)microorganisms[i].entity)->base;
+            entity = &((ImmuneCell*)microorganisms[i].entity)->base;
             fill_color = &COLOR_DEFENDER_BUTTON;
         }
         else
         {
-            entity = &((Enemy*)microorganisms[i].entity)->base;
+            entity = &((Pathogen*)microorganisms[i].entity)->base;
             fill_color = &COLOR_ENEMY_BUTTON;
         }
 
@@ -100,7 +100,7 @@ static void draw(int screen_width, int screen_height)
             .y = button_y,
             .width = button_width,
             .height = button_height,
-            .text = {.content = entity->name, .color = &COLOR_BLACK, .font = fonts[FONT_NORMAL]},
+            .text = {.content = entity->name, .color = &COLOR_WHITE, .font = fonts[FONT_NORMAL]},
             .fill_color = fill_color,
             .border = {.border_color = &COLOR_BLACK, .thickness = 2},
             .on_click = on_microorganism_change,
@@ -119,10 +119,10 @@ static void draw(int screen_width, int screen_height)
             return;
         }
 
-        float image_x = divider_x + 400;
-        float image_y = 600;
-        float image_width = 400;
-        float image_height = 400;
+        float image_x = divider_x + 225;
+        float image_y = 275;
+        float image_width = 200;
+        float image_height = 200;
 
         if (entity->image)
         {
@@ -131,12 +131,12 @@ static void draw(int screen_width, int screen_height)
                                   image_width, image_height, 0);
         }
 
-        al_draw_text(fonts[FONT_H1], COLOR_YELLOW, image_x, image_y + image_height + 40,
+        al_draw_text(fonts[FONT_H1], COLOR_YELLOW, image_x - 100, image_y + image_height + 40,
                      ALLEGRO_ALIGN_LEFT, entity->name);
 
         if (entity->description)
         {
-            al_draw_multiline_text(fonts[FONT_H4], COLOR_WHITE, image_x,
+            al_draw_multiline_text(fonts[FONT_H4], COLOR_WHITE, image_x - 100,
                                    image_y + image_height + 100, 400, 24, ALLEGRO_ALIGN_LEFT,
                                    entity->description);
         }
