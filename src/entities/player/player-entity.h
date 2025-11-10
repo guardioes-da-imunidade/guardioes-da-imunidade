@@ -3,15 +3,26 @@
 
 #include <stdbool.h>
 
-typedef struct PlayerEntity
+#define MAX_DEFENDERS_INVENTORY 10
+#define MAX_IN_USE_SLOTS 3
+
+typedef struct
 {
-    char defenders_unlocked[20];
-    int current_stage;
+    int defender_id;
+    bool unlocked;
+    char name[32];
+} DefenderInventory;
+
+typedef struct
+{
     int vaccines;
+    int current_stage;
+    DefenderInventory defenders[MAX_DEFENDERS_INVENTORY];
+    int in_use_slots[MAX_IN_USE_SLOTS];
 } PlayerEntity;
 
-extern PlayerEntity *PLAYER_ENTITY;
+extern PlayerEntity* PLAYER_ENTITY;
 
-void init_player(void);
+void init_player();
 
 #endif

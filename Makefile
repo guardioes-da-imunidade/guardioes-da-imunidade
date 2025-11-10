@@ -4,6 +4,7 @@ SRC = main.c \
     	src/core/init.c \
     	src/core/game.c \
     	src/core/palette.c \
+    	src/core/typography.c \
     	src/core/input.c \
     		src/core/ui/button.c \
 		\

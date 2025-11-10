@@ -5,27 +5,27 @@
 #include <allegro5/allegro_image.h>
 #include <stdio.h>
 
-#include "../../systems/sound_effect.h"
-#include "../../systems/music.h"
-#include "../../systems/global_audio.h"
 #include "../../core/game.h"
+#include "../../systems/global_audio.h"
+#include "../../systems/music.h"
+#include "../../systems/sound_effect.h"
 #include "../lobby_screen/lobby_screen.h"
 #include "config.h"
 
 extern GameState current_game_state;
-extern Screen *current_screen;
+extern Screen* current_screen;
 
-static ALLEGRO_BITMAP *background = NULL;
-static ALLEGRO_BITMAP *logo = NULL;
-static ALLEGRO_BITMAP *play_game = NULL;
-static ALLEGRO_SAMPLE *button_clicked = NULL;
+static ALLEGRO_BITMAP* background = NULL;
+static ALLEGRO_BITMAP* logo = NULL;
+static ALLEGRO_BITMAP* play_game = NULL;
+static ALLEGRO_SAMPLE* button_clicked = NULL;
 
-static int btn_x = 810;
-static int btn_y = 800;
-static int btn_width = 300;
-static int btn_height = 300;
+static int btn_x = 540;
+static int btn_y = 500;
+static int btn_width = 200;
+static int btn_height = 180;
 
-static void init(ALLEGRO_DISPLAY *display)
+static void init(ALLEGRO_DISPLAY* display)
 {
     current_game_state = GAME_MENU;
     al_reserve_samples(1);
@@ -39,22 +39,27 @@ static void init(ALLEGRO_DISPLAY *display)
     play_music();
 }
 
-static void update(ALLEGRO_EVENT *event, bool *running)
+static void update(ALLEGRO_EVENT* event, bool* running)
 {
     if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
     {
         int mx = event->mouse.x;
         int my = event->mouse.y;
 
-        if (mx >= audio_icons_x && mx <= audio_icons_x + audio_icons_width && my >= audio_icons_y && my <= audio_icons_y + audio_icons_height)
+        if (mx >= audio_icons_x && mx <= audio_icons_x + audio_icons_width && my >= audio_icons_y &&
+            my <= audio_icons_y + audio_icons_height)
         {
             toggle_mute();
         }
-        else if (mx >= volume_increase_icon_x  && mx <= volume_icons_width + volume_increase_icon_x && my >= volume_increase_icon_y && my <= volume_increase_icon_y + volume_icons_height)
+        else if (mx >= volume_increase_icon_x &&
+                 mx <= volume_icons_width + volume_increase_icon_x &&
+                 my >= volume_increase_icon_y && my <= volume_increase_icon_y + volume_icons_height)
         {
             increase_volume();
         }
-        else if (mx >= volume_decrease_icon_x && mx <= volume_decrease_icon_x + volume_icons_width && my >= volume_decrease_icon_y && my <= volume_decrease_icon_y + volume_icons_height)
+        else if (mx >= volume_decrease_icon_x &&
+                 mx <= volume_decrease_icon_x + volume_icons_width &&
+                 my >= volume_decrease_icon_y && my <= volume_decrease_icon_y + volume_icons_height)
         {
             lower_volume();
         }
@@ -72,14 +77,6 @@ static void update(ALLEGRO_EVENT *event, bool *running)
         }
     }
 
-    if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_C)
-    {
-        current_screen->destroy();
-
-        current_screen = &ConfigScreen;
-        current_screen->init(NULL);
-    }
-
     if (event->type == ALLEGRO_EVENT_DISPLAY_CLOSE)
     {
         *running = false;
@@ -90,16 +87,21 @@ static void draw(int screen_width, int screen_height)
 {
     if (background)
         al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
-                              al_get_bitmap_height(background), 0, 0, screen_width, screen_height,
-                              0);
+                              al_get_bitmap_height(background), 0, 0, 1280, 720, 0);
 
     if (logo)
-        al_draw_bitmap(logo, 450, -120, 0);
+    {
+        int logo_width = al_get_bitmap_width(logo) / 1.5;
+        int logo_height = al_get_bitmap_height(logo) / 1.5;
+        al_draw_scaled_bitmap(logo, 0, 0, al_get_bitmap_width(logo), al_get_bitmap_height(logo),
+                              640 - (logo_width / 2), -100, logo_width, logo_height, 0);
+    }
 
     if (play_game)
         al_draw_scaled_bitmap(play_game, 0, 0, al_get_bitmap_width(play_game),
                               al_get_bitmap_height(play_game), btn_x, btn_y, btn_width, btn_height,
                               0);
+
     draw_audio_icons();
 }
 
@@ -113,7 +115,7 @@ static void destroy(void)
         al_destroy_bitmap(play_game);
     if (button_clicked)
         al_destroy_sample(button_clicked);
-        destroy_music();
+    destroy_music();
 }
 
 Screen MenuScreen = {
