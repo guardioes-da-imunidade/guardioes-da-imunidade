@@ -24,7 +24,7 @@ $(shell mkdir -p $(BUILD_DIR))
 
 # Build normal (simplesmente "make" no terminal)
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) -o $(BUILD_DIR)/$(TARGET) $(LIBS)
+	$(CC) $(CFLAGS) $(SRC) -o $(BUILD_DIR)/$(TARGET) $(LIBS) -lm
 
 # Build para debug
 debug: $(SRC)
