@@ -5,7 +5,7 @@
 Microorganism microorganisms[10];
 int total_microorganisms = 0;
 
-static Defender defenders[] = {
+static ImmuneCell defenders[] = {
     {
         .base =
             {
@@ -53,7 +53,7 @@ static Defender defenders[] = {
     },
 };
 
-static Enemy enemies[] = {
+static Pathogen enemies[] = {
     {
         .base =
             {
@@ -101,8 +101,8 @@ static Enemy enemies[] = {
     },
 };
 
-static int defenders_count = sizeof(defenders) / sizeof(Defender);
-static int enemies_count = sizeof(enemies) / sizeof(Enemy);
+static int defenders_count = sizeof(defenders) / sizeof(ImmuneCell);
+static int enemies_count = sizeof(enemies) / sizeof(Pathogen);
 
 void load_microorganisms()
 {

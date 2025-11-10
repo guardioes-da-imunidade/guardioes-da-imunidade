@@ -22,13 +22,13 @@ typedef struct
 {
     Entity base;
     float cost_to_place;
-} Defender;
+} ImmuneCell;
 
 typedef struct
 {
     Entity base;
     bool is_boss;
-} Enemy;
+} Pathogen;
 
 typedef struct
 {
