@@ -23,7 +23,7 @@ static void init(ALLEGRO_DISPLAY* display)
 {
     load_microorganisms();
 
-    background = al_load_bitmap("assets/images/menu/background_lobby.png");
+    background = al_load_bitmap("assets/images/menu/background_bestiary.png");
 
     microorganisms_indexes_memo = malloc(sizeof(int) * total_microorganisms);
     if (!microorganisms_indexes_memo)
@@ -119,25 +119,25 @@ static void draw(int screen_width, int screen_height)
             return;
         }
 
-        float right_x = divider_x + 100;
-        float image_y = 150;
-        float image_width = 250;
-        float image_height = 250;
+        float image_x = divider_x + 400;
+        float image_y = 600;
+        float image_width = 400;
+        float image_height = 400;
 
         if (entity->image)
         {
             al_draw_scaled_bitmap(entity->image, 0, 0, al_get_bitmap_width(entity->image),
-                                  al_get_bitmap_height(entity->image), right_x, image_y,
+                                  al_get_bitmap_height(entity->image), image_x, image_y,
                                   image_width, image_height, 0);
         }
 
-        al_draw_text(fonts[FONT_H1], COLOR_BLACK, right_x, image_y + image_height + 30,
+        al_draw_text(fonts[FONT_H1], COLOR_YELLOW, image_x, image_y + image_height + 40,
                      ALLEGRO_ALIGN_LEFT, entity->name);
 
         if (entity->description)
         {
-            al_draw_multiline_text(fonts[FONT_H4], COLOR_BLACK, right_x,
-                                   image_y + image_height + 70, 400, 24, ALLEGRO_ALIGN_LEFT,
+            al_draw_multiline_text(fonts[FONT_H4], COLOR_WHITE, image_x,
+                                   image_y + image_height + 100, 400, 24, ALLEGRO_ALIGN_LEFT,
                                    entity->description);
         }
     }
