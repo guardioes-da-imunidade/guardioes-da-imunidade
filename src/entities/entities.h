@@ -5,17 +5,30 @@
 #include <allegro5/allegro_image.h>
 #include <stdio.h>
 
+typedef enum
+{
+    PROJECTILE_WHITE_BALL = 0,
+    PROJECTILE_BLUE_MAGIC = 1,
+    PROJECTILE_RED_LASER = 2
+} ProjectileType;
+
 typedef struct
 {
-    const char *name;
-    const char *description;
+    const char* name;
+    const char* description;
     int health;
     float speed;
     int attack;
     int defense;
     float attack_cooldown;
-    const char *image_path;
-    ALLEGRO_BITMAP *image;
+    bool active;
+    int row;
+    int col;
+    int x;
+    int y;
+    ProjectileType projectile_type;
+    const char* image_path;
+    ALLEGRO_BITMAP* image;
 } Entity;
 
 typedef struct
@@ -28,12 +41,13 @@ typedef struct
 {
     Entity base;
     bool is_boss;
+    int type;
 } Pathogen;
 
 typedef struct
 {
     bool is_defender;
-    Entity *entity;
+    Entity* entity;
 } Microorganism;
 
 extern Microorganism microorganisms[];

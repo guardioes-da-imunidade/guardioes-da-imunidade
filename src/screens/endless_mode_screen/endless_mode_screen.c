@@ -50,13 +50,6 @@ typedef enum
     ENEMY_BACTERIUM = 2
 } EnemyType;
 
-typedef enum
-{
-    PROJECTILE_WHITE_BALL = 0,
-    PROJECTILE_BLUE_MAGIC = 1,
-    PROJECTILE_RED_LASER = 2
-} ProjectileType;
-
 typedef struct
 {
     float x;
@@ -91,17 +84,6 @@ typedef struct
     float x;
     float y;
     int row;
-    EnemyType type;
-    float speed;
-    bool active;
-    int health;
-} Enemy;
-
-typedef struct
-{
-    float x;
-    float y;
-    int row;
     float speed;
     bool active;
     ProjectileType type;
@@ -111,7 +93,7 @@ typedef struct
 static Particle particles[MAX_PARTICLES];
 static Orb orbs[MAX_ORBS];
 static Defender defenders[MAX_DEFENDERS];
-static Enemy enemies[MAX_ENEMIES];
+static Pathogen enemies[MAX_ENEMIES];
 static Projectile projectiles[MAX_PROJECTILES];
 
 static DefenderType selected_defender = -1;
@@ -137,7 +119,7 @@ static double last_time = 0.0;
 static void init_arrays(void)
 {
     for (int i = 0; i < MAX_DEFENDERS; i++) defenders[i].active = false;
-    for (int i = 0; i < MAX_ENEMIES; i++) enemies[i].active = false;
+    for (int i = 0; i < MAX_ENEMIES; i++) enemies[i].base.active = false;
     for (int i = 0; i < MAX_PROJECTILES; i++) projectiles[i].active = false;
     for (int i = 0; i < MAX_PARTICLES; i++) particles[i].life = 0.0f;
     for (int i = 0; i < MAX_ORBS; i++) orbs[i].active = false;
@@ -232,17 +214,18 @@ static void spawn_enemy(int screen_width)
     {
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
-            if (!enemies[i].active)
+            if (!enemies[i].base.active)
             {
-                enemies[i].active = true;
-                enemies[i].row = rand() % GRID_ROWS;
+                enemies[i].base.active = true;
+                enemies[i].base.row = rand() % GRID_ROWS;
                 enemies[i].type = rand() % 3;
-                enemies[i].x = (float)screen_width + (spawn * 80.0f);
-                enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2.0f;
+                enemies[i].base.x = (float)screen_width + (spawn * 80.0f);
+                enemies[i].base.y =
+                    GRID_START_Y + enemies[i].base.row * cell_height + cell_height / 2.0f;
                 float base_speed = 35.0f + (rand() % 25);
                 float speed_multiplier = 1.0f + (game_time / 60.0f);
-                enemies[i].speed = base_speed * speed_multiplier;
-                enemies[i].health = 3;
+                enemies[i].base.speed = base_speed * speed_multiplier;
+                enemies[i].base.health = 3;
                 break;
             }
         }
@@ -317,26 +300,26 @@ static void check_enemy_defender_collision(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (enemies[i].active)
+        if (enemies[i].base.active)
         {
             for (int j = 0; j < MAX_DEFENDERS; j++)
             {
-                if (defenders[j].active && defenders[j].row == enemies[i].row)
+                if (defenders[j].active && defenders[j].row == enemies[i].base.row)
                 {
                     float defender_x = defenders[j].col * (cell_width + 1.0f) + cell_width / 2.0f;
                     float defender_y =
                         GRID_START_Y + defenders[j].row * cell_height + cell_height / 2.0f;
-                    float dx = enemies[i].x - defender_x;
-                    float dy = enemies[i].y - defender_y;
+                    float dx = enemies[i].base.x - defender_x;
+                    float dy = enemies[i].base.y - defender_y;
                     float dist2 = dx * dx + dy * dy;
 
                     if (dist2 < 40.0f * 40.0f)
                     {
-                        spawn_particle_burst(enemies[i].x, enemies[i].y, 20,
+                        spawn_particle_burst(enemies[i].base.x, enemies[i].base.y, 20,
                                              al_map_rgb(255, 100, 100));
                         spawn_particle_burst(defender_x, defender_y, 20, al_map_rgb(200, 50, 50));
                         defenders[j].active = false;
-                        enemies[i].active = false;
+                        enemies[i].base.active = false;
                         break;
                     }
                 }
@@ -359,7 +342,7 @@ static void update_defenders(void)
 
                 for (int j = 0; j < MAX_ENEMIES; j++)
                 {
-                    if (enemies[j].active && enemies[j].row == defenders[i].row)
+                    if (enemies[j].base.active && enemies[j].base.row == defenders[i].row)
                     {
                         enemy_in_row = true;
                         break;
@@ -381,13 +364,13 @@ static void update_enemies(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (enemies[i].active)
+        if (enemies[i].base.active)
         {
-            enemies[i].x -= enemies[i].speed * delta_time;
+            enemies[i].base.x -= enemies[i].base.speed * delta_time;
 
-            if (enemies[i].x < -50.0f)
+            if (enemies[i].base.x < -50.0f)
             {
-                enemies[i].active = false;
+                enemies[i].base.active = false;
                 game_over = true;
             }
         }
@@ -411,17 +394,17 @@ static void update_projectiles(int screen_width)
 
             for (int j = 0; j < MAX_ENEMIES; j++)
             {
-                if (enemies[j].active && enemies[j].row == projectiles[i].row)
+                if (enemies[j].base.active && enemies[j].base.row == projectiles[i].row)
                 {
-                    float dist = fabs(projectiles[i].x - enemies[j].x);
+                    float dist = fabs(projectiles[i].x - enemies[j].base.x);
                     if (dist < 30.0f)
                     {
-                        enemies[j].health--;
-                        if (enemies[j].health <= 0)
+                        enemies[j].base.health--;
+                        if (enemies[j].base.health <= 0)
                         {
-                            spawn_particle_burst(enemies[j].x, enemies[j].y, 25,
+                            spawn_particle_burst(enemies[j].base.x, enemies[j].base.y, 25,
                                                  al_map_rgb(255, 200, 50));
-                            enemies[j].active = false;
+                            enemies[j].base.active = false;
                             enemies_killed++;
                             PLAYER_ENTITY->vaccines++;
                         }
@@ -726,13 +709,13 @@ static void draw(int screen_width, int screen_height)
 
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
-            if (enemies[i].active && enemy_images[enemies[i].type])
+            if (enemies[i].base.active && enemy_images[enemies[i].type])
             {
                 float size = 60.0f;
 
                 al_draw_scaled_bitmap(enemy_images[enemies[i].type], 0, 0, enemy_w[enemies[i].type],
-                                      enemy_h[enemies[i].type], enemies[i].x - size / 2.0f,
-                                      enemies[i].y - size / 2.0f, size, size, 0);
+                                      enemy_h[enemies[i].type], enemies[i].base.x - size / 2.0f,
+                                      enemies[i].base.y - size / 2.0f, size, size, 0);
             }
         }
 
