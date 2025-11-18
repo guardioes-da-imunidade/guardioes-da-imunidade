@@ -5,6 +5,24 @@ static ALLEGRO_BITMAP* background = NULL;
 static int current_creature_index = 0;
 static int* microorganisms_indexes_memo = NULL;
 
+static void draw_stat_bar(const char* label, float value, float max_value, float x, float y,
+                          float bar_width, float bar_height, ALLEGRO_COLOR color)
+{
+    float percent = value / max_value;
+    if (percent > 1)
+        percent = 1;
+
+    float filled = bar_width * percent;
+
+    al_draw_text(fonts[FONT_H5], COLOR_WHITE, x, y - 22, ALLEGRO_ALIGN_LEFT, label);
+
+    al_draw_filled_rectangle(x, y, x + bar_width, y + bar_height, al_map_rgb(40, 40, 40));
+
+    al_draw_filled_rectangle(x, y, x + filled, y + bar_height, color);
+
+    al_draw_rectangle(x, y, x + bar_width, y + bar_height, COLOR_BLACK, 2);
+}
+
 static void on_back_screen()
 {
     current_screen->destroy();
@@ -139,6 +157,34 @@ static void draw(int screen_width, int screen_height)
             al_draw_multiline_text(fonts[FONT_H5], COLOR_WHITE, image_x - 100,
                                    image_y + image_height + 100, 400, 24, ALLEGRO_ALIGN_LEFT,
                                    entity->description);
+        }
+
+        float stats_x = screen_width - 200;
+        float stats_y = 50;
+        float bar_width = 150;
+        float bar_height = 12;
+
+        draw_stat_bar("Vida", entity->health, 200, stats_x, stats_y, bar_width, bar_height,
+                      al_map_rgb(0, 200, 0));
+
+        draw_stat_bar("Ataque", entity->attack, 20, stats_x, stats_y + 50, bar_width, bar_height,
+                      al_map_rgb(200, 0, 0));
+
+        draw_stat_bar("Defesa", entity->defense, 20, stats_x, stats_y + 100, bar_width, bar_height,
+                      al_map_rgb(0, 100, 255));
+
+        draw_stat_bar("Velocidade", entity->speed, 2.0f, stats_x, stats_y + 150, bar_width,
+                      bar_height, al_map_rgb(255, 220, 0));
+
+        draw_stat_bar("Cooldown", 1.0f / entity->attack_cooldown, 2.0f, stats_x, stats_y + 200,
+                      bar_width, bar_height, al_map_rgb(150, 0, 150));
+
+        if (current->is_defender)
+        {
+            ImmuneCell* d = (ImmuneCell*)current->entity;
+
+            draw_stat_bar("Custo", d->cost_to_place, 50, stats_x, stats_y + 250, bar_width,
+                          bar_height, al_map_rgb(0, 200, 200));
         }
     }
 }
