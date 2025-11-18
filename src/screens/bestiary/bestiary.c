@@ -136,7 +136,7 @@ static void draw(int screen_width, int screen_height)
 
         if (entity->description)
         {
-            al_draw_multiline_text(fonts[FONT_H4], COLOR_WHITE, image_x - 100,
+            al_draw_multiline_text(fonts[FONT_H5], COLOR_WHITE, image_x - 100,
                                    image_y + image_height + 100, 400, 24, ALLEGRO_ALIGN_LEFT,
                                    entity->description);
         }

@@ -10,7 +10,9 @@ static ImmuneCell defenders[] = {
         .base =
             {
                 .name = "Basófilo",
-                .description = "Defensor do sistema imunológico.",
+                .description = "Célula do sistema imunológico envolvida em reações alérgicas e "
+                               "inflamatórias. Libera histamina e outras substâncias químicas para "
+                               "ajudar na defesa contra patógenos.",
                 .health = 100,
                 .speed = 0.5f,
                 .attack = 0,
@@ -25,7 +27,9 @@ static ImmuneCell defenders[] = {
         .base =
             {
                 .name = "Eosinófilo",
-                .description = "Defensor especializado em parasitas.",
+                .description =
+                    "Leucócito especializado no combate a parasitas, como vermes. Atua também na "
+                    "modulação de respostas alérgicas, liberando enzimas e proteínas tóxicas.",
                 .health = 80,
                 .speed = 0.6f,
                 .attack = 5,
@@ -40,7 +44,9 @@ static ImmuneCell defenders[] = {
         .base =
             {
                 .name = "Glóbulo Branco",
-                .description = "Defensor geral.",
+                .description =
+                    "Célula de defesa que identifica, engole e destrói microrganismos invasores. "
+                    "Representa funções típicas de fagócitos, como neutrófilos e macrófagos.",
                 .health = 120,
                 .speed = 0.4f,
                 .attack = 10,
@@ -58,7 +64,9 @@ static Pathogen enemies[] = {
         .base =
             {
                 .name = "Bactéria",
-                .description = "Bactéria rápida e frágil.",
+                .description =
+                    "Micro-organismo unicelular capaz de se reproduzir rapidamente. Pode causar "
+                    "infecções ao liberar toxinas ou invadir tecidos do corpo.",
                 .health = 50,
                 .speed = 1.2f,
                 .attack = 5,
@@ -73,7 +81,9 @@ static Pathogen enemies[] = {
         .base =
             {
                 .name = "Parasita",
-                .description = "Parasita astuto e persistente.",
+                .description =
+                    "Organismo que depende de um hospedeiro para sobreviver. Alguns parasitas "
+                    "invadem células ou tecidos e podem causar danos prolongados.",
                 .health = 60,
                 .speed = 1.0f,
                 .attack = 6,
@@ -88,7 +98,8 @@ static Pathogen enemies[] = {
         .base =
             {
                 .name = "Vírus",
-                .description = "Vírus perigoso e rápido.",
+                .description = "Agente infeccioso que invade células do corpo para se replicar. "
+                               "Pode se espalhar rapidamente e causar doenças graves.",
                 .health = 70,
                 .speed = 1.5f,
                 .attack = 8,
