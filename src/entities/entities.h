@@ -24,8 +24,8 @@ typedef struct
     bool active;
     int row;
     int col;
-    int x;
-    int y;
+    float x;
+    float y;
     ProjectileType projectile_type;
     const char* image_path;
     ALLEGRO_BITMAP* image;
