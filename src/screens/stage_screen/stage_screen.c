@@ -50,6 +50,23 @@ typedef enum
     PROJECTILE_RED_LASER = 2
 } ProjectileType;
 
+typedef enum
+{
+    TUTORIAL_NONE = 0,
+    TUTORIAL_WELCOME,
+    TUTORIAL_VITAMINS_EXPLANATION,
+    TUTORIAL_WAIT_ORB,
+    TUTORIAL_COLLECT_ORB,
+    TUTORIAL_DEFENDER_EXPLANATION,
+    TUTORIAL_SELECT_DEFENDER,
+    TUTORIAL_PLACE_DEFENDER,
+    TUTORIAL_WAIT_ENEMY,
+    TUTORIAL_ENEMY_EXPLANATION,
+    TUTORIAL_PROJECTILE_EXPLANATION,
+    TUTORIAL_OBJECTIVE_EXPLANATION,
+    TUTORIAL_COMPLETE
+} TutorialStep;
+
 typedef struct
 {
     float x;
@@ -139,6 +156,7 @@ static int screen_width_cached = 0;
 static int screen_height_cached = 0;
 static ALLEGRO_FONT* font = NULL;
 static ALLEGRO_FONT* title_font = NULL;
+static ALLEGRO_FONT* tutorial_font = NULL;
 
 static const int defender_costs[3] = {50, 75, 100};
 static const int defender_damage[3] = {1, 3, 5};
@@ -152,6 +170,17 @@ static const char* defender_paths[10] = {
 
 static StageConfig stage_config;
 static double last_time = 0.0;
+
+static TutorialStep tutorial_step = TUTORIAL_NONE;
+static bool tutorial_active = false;
+static float tutorial_timer = 0.0f;
+static int tutorial_orb_index = -1;
+static bool tutorial_defender_placed = false;
+static bool tutorial_enemy_spawned = false;
+static bool tutorial_projectile_fired = false;
+static float orb_spawn_timer = 0.0f;
+static int tutorial_defender_row = -1;
+static bool tutorial_orb_frozen = false;
 
 static void init_arrays(void)
 {
@@ -184,7 +213,29 @@ static void configure_stage(int stage_number)
     stage_config.wave_interval = 15.0f;
 }
 
-void set_current_stage(int stage_number) { configure_stage(stage_number); }
+void set_current_stage(int stage_number)
+{
+    configure_stage(stage_number);
+
+    if (stage_number == 1)
+    {
+        tutorial_active = true;
+        tutorial_step = TUTORIAL_WELCOME;
+        tutorial_timer = 0.0f;
+        tutorial_orb_index = -1;
+        tutorial_defender_placed = false;
+        tutorial_enemy_spawned = false;
+        tutorial_projectile_fired = false;
+        orb_spawn_timer = 0.0f;
+        tutorial_defender_row = -1;
+        tutorial_orb_frozen = false;
+    }
+    else
+    {
+        tutorial_active = false;
+        tutorial_step = TUTORIAL_NONE;
+    }
+}
 
 static void spawn_particle_burst(float x, float y, int count, ALLEGRO_COLOR color)
 {
@@ -216,8 +267,19 @@ static void spawn_orb(void)
         if (!orbs[i].active)
         {
             orbs[i].active = true;
-            orbs[i].x =
-                50.0f + (rand() % (screen_width_cached > 100 ? screen_width_cached - 100 : 1));
+
+            if (tutorial_active && tutorial_step == TUTORIAL_WAIT_ORB)
+            {
+                orbs[i].x = screen_width_cached / 2.0f;
+                tutorial_orb_index = i;
+                tutorial_step = TUTORIAL_COLLECT_ORB;
+            }
+            else
+            {
+                orbs[i].x =
+                    100.0f + (rand() % (screen_width_cached > 200 ? screen_width_cached - 200 : 1));
+            }
+
             orbs[i].y = -30.0f;
             orbs[i].vy = 80.0f + (rand() % 40);
             orbs[i].rotation = 0.0f;
@@ -287,6 +349,24 @@ static void spawn_wave_enemy(int screen_width)
     }
 }
 
+static void spawn_tutorial_enemy(void)
+{
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        if (!enemies[i].active)
+        {
+            enemies[i].active = true;
+            enemies[i].row = tutorial_defender_row;
+            enemies[i].type = ENEMY_VIRUS;
+            enemies[i].x = (float)screen_width_cached;
+            enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2.0f;
+            enemies[i].speed = 25.0f;
+            enemies[i].health = 1;
+            break;
+        }
+    }
+}
+
 static void add_defender(int row, int col, int defender_slot)
 {
     if (placement_cooldown > 0.0f)
@@ -314,6 +394,14 @@ static void add_defender(int row, int col, int defender_slot)
             placement_cooldown = 1.0f;
             vitamins -= cost;
             selected_defender_slot = -1;
+
+            if (tutorial_active && tutorial_step == TUTORIAL_PLACE_DEFENDER)
+            {
+                tutorial_defender_placed = true;
+                tutorial_defender_row = row;
+                tutorial_step = TUTORIAL_WAIT_ENEMY;
+                tutorial_timer = 0.0f;
+            }
             break;
         }
     }
@@ -346,6 +434,14 @@ static void shoot_projectile(int row, int col, int defender_slot)
             {
                 projectiles[i].type = PROJECTILE_RED_LASER;
                 projectiles[i].speed = 320.0f;
+            }
+
+            if (tutorial_active && tutorial_step == TUTORIAL_ENEMY_EXPLANATION &&
+                !tutorial_projectile_fired)
+            {
+                tutorial_projectile_fired = true;
+                tutorial_step = TUTORIAL_PROJECTILE_EXPLANATION;
+                tutorial_timer = 0.0f;
             }
             break;
         }
@@ -431,7 +527,11 @@ static void update_enemies(void)
             if (enemies[i].x < -50.0f)
             {
                 enemies[i].active = false;
-                stage_failed = true;
+
+                if (!tutorial_active)
+                {
+                    stage_failed = true;
+                }
             }
         }
     }
@@ -466,6 +566,12 @@ static void update_projectiles(int screen_width)
                                                  al_map_rgb(255, 200, 50));
                             enemies[j].active = false;
                             enemies_killed_this_stage++;
+
+                            if (tutorial_active && tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION)
+                            {
+                                tutorial_step = TUTORIAL_OBJECTIVE_EXPLANATION;
+                                tutorial_timer = 0.0f;
+                            }
                         }
                         projectiles[i].active = false;
                         break;
@@ -496,10 +602,26 @@ static void update_orbs(void)
     {
         if (orbs[i].active)
         {
-            orbs[i].y += orbs[i].vy * delta_time;
-            orbs[i].rotation += 5.0f;
-            if (orbs[i].y > (float)screen_height_cached + 50.0f)
-                orbs[i].active = false;
+            if (tutorial_active && tutorial_step == TUTORIAL_COLLECT_ORB && i == tutorial_orb_index)
+            {
+                if (!tutorial_orb_frozen)
+                {
+                    orbs[i].y += orbs[i].vy * delta_time;
+                    if (orbs[i].y >= screen_height_cached / 2.0f)
+                    {
+                        orbs[i].y = screen_height_cached / 2.0f;
+                        tutorial_orb_frozen = true;
+                    }
+                }
+                orbs[i].rotation += 5.0f;
+            }
+            else
+            {
+                orbs[i].y += orbs[i].vy * delta_time;
+                orbs[i].rotation += 5.0f;
+                if (orbs[i].y > (float)screen_height_cached + 50.0f)
+                    orbs[i].active = false;
+            }
         }
     }
 }
@@ -535,6 +657,7 @@ static void init(ALLEGRO_DISPLAY* display)
     load_images();
     font = al_create_builtin_font();
     title_font = al_create_builtin_font();
+    tutorial_font = al_create_builtin_font();
 
     if (display)
     {
@@ -588,6 +711,114 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             return;
         int mouse_x = event->mouse.x;
         int mouse_y = event->mouse.y;
+
+        if (tutorial_active)
+        {
+            if (tutorial_step == TUTORIAL_WELCOME ||
+                tutorial_step == TUTORIAL_VITAMINS_EXPLANATION ||
+                tutorial_step == TUTORIAL_DEFENDER_EXPLANATION ||
+                tutorial_step == TUTORIAL_ENEMY_EXPLANATION ||
+                tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION ||
+                tutorial_step == TUTORIAL_OBJECTIVE_EXPLANATION)
+            {
+                if (tutorial_step == TUTORIAL_WELCOME)
+                {
+                    tutorial_step = TUTORIAL_VITAMINS_EXPLANATION;
+                    tutorial_timer = 0.0f;
+                    orb_spawn_timer = 0.0f;
+                }
+                else if (tutorial_step == TUTORIAL_VITAMINS_EXPLANATION)
+                {
+                    tutorial_step = TUTORIAL_WAIT_ORB;
+                    tutorial_timer = 0.0f;
+                }
+                else if (tutorial_step == TUTORIAL_DEFENDER_EXPLANATION)
+                {
+                    tutorial_step = TUTORIAL_SELECT_DEFENDER;
+                    tutorial_timer = 0.0f;
+                }
+                else if (tutorial_step == TUTORIAL_ENEMY_EXPLANATION)
+                {
+                    tutorial_timer = 0.0f;
+                }
+                else if (tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION)
+                {
+                    tutorial_timer = 0.0f;
+                }
+                else if (tutorial_step == TUTORIAL_OBJECTIVE_EXPLANATION)
+                {
+                    tutorial_step = TUTORIAL_COMPLETE;
+                    tutorial_active = false;
+                }
+                return;
+            }
+            else if (tutorial_step == TUTORIAL_COLLECT_ORB)
+            {
+                if (tutorial_orb_index >= 0 && orbs[tutorial_orb_index].active)
+                {
+                    float dx = mouse_x - orbs[tutorial_orb_index].x;
+                    float dy = mouse_y - orbs[tutorial_orb_index].y;
+                    float dist2 = dx * dx + dy * dy;
+                    if (dist2 < 20.0f * 20.0f)
+                    {
+                        vitamins += 75;
+                        orbs[tutorial_orb_index].active = false;
+                        spawn_particle_burst(orbs[tutorial_orb_index].x, orbs[tutorial_orb_index].y,
+                                             15, al_map_rgb(255, 215, 0));
+                        tutorial_step = TUTORIAL_DEFENDER_EXPLANATION;
+                        tutorial_timer = 0.0f;
+                        tutorial_orb_frozen = false;
+                        return;
+                    }
+                }
+                return;
+            }
+            else if (tutorial_step == TUTORIAL_SELECT_DEFENDER)
+            {
+                if (mouse_y < SELECTOR_HEIGHT)
+                {
+                    int selector_width = 100;
+                    int start_x = 10;
+
+                    for (int i = 0; i < in_use_count; i++)
+                    {
+                        int x1 = start_x + i * (selector_width + 10);
+                        int x2 = x1 + selector_width;
+                        if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 &&
+                            mouse_y <= SELECTOR_HEIGHT - 10)
+                        {
+                            if (vitamins >= defender_costs[i])
+                            {
+                                selected_defender_slot = i;
+                                tutorial_step = TUTORIAL_PLACE_DEFENDER;
+                                tutorial_timer = 0.0f;
+                            }
+                            break;
+                        }
+                    }
+                }
+                return;
+            }
+            else if (tutorial_step == TUTORIAL_PLACE_DEFENDER)
+            {
+                if (mouse_y >= GRID_START_Y)
+                {
+                    int col = (int)(mouse_x / (cell_width + 1.0f));
+                    int row = (int)((mouse_y - GRID_START_Y) / cell_height);
+
+                    if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS)
+                    {
+                        if (selected_defender_slot != -1)
+                        {
+                            add_defender(row, col, selected_defender_slot);
+                        }
+                    }
+                }
+                return;
+            }
+
+            return;
+        }
 
         for (int i = 0; i < MAX_ORBS; i++)
         {
@@ -668,47 +899,109 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         update_orbs();
         check_enemy_defender_collision();
 
-        if (!wave_active)
+        if (tutorial_active)
         {
-            wave_timer += delta_time;
-            if (wave_timer >= 3.0f && current_wave < stage_config.total_waves)
+            tutorial_timer += delta_time;
+
+            if (tutorial_step == TUTORIAL_WAIT_ORB)
             {
-                wave_active = true;
-                wave_timer = 0.0f;
-                enemies_spawned_in_wave = 0;
-                current_wave++;
+                orb_spawn_timer += delta_time;
+                if (orb_spawn_timer >= 1.0f && tutorial_orb_index == -1)
+                {
+                    spawn_orb();
+                }
+            }
+
+            if (tutorial_step == TUTORIAL_WAIT_ENEMY && tutorial_timer > 2.0f &&
+                !tutorial_enemy_spawned)
+            {
+                spawn_tutorial_enemy();
+                tutorial_enemy_spawned = true;
+                tutorial_step = TUTORIAL_ENEMY_EXPLANATION;
+                tutorial_timer = 0.0f;
             }
         }
         else
         {
-            wave_timer += delta_time;
-            if (wave_timer >= 1.5f && enemies_spawned_in_wave < stage_config.enemies_per_wave)
+            if (!wave_active)
             {
-                spawn_wave_enemy(screen_width_cached);
-                wave_timer = 0.0f;
+                wave_timer += delta_time;
+                if (wave_timer >= 3.0f && current_wave < stage_config.total_waves)
+                {
+                    wave_active = true;
+                    wave_timer = 0.0f;
+                    enemies_spawned_in_wave = 0;
+                    current_wave++;
+                }
+            }
+            else
+            {
+                wave_timer += delta_time;
+                if (wave_timer >= 1.5f && enemies_spawned_in_wave < stage_config.enemies_per_wave)
+                {
+                    spawn_wave_enemy(screen_width_cached);
+                    wave_timer = 0.0f;
+                }
+
+                if (enemies_spawned_in_wave >= stage_config.enemies_per_wave &&
+                    check_all_enemies_defeated())
+                {
+                    wave_active = false;
+                    wave_timer = 0.0f;
+                }
             }
 
-            if (enemies_spawned_in_wave >= stage_config.enemies_per_wave &&
+            if (current_wave >= stage_config.total_waves && !wave_active &&
                 check_all_enemies_defeated())
             {
-                wave_active = false;
-                wave_timer = 0.0f;
+                stage_complete = true;
             }
-        }
 
-        if (current_wave >= stage_config.total_waves && !wave_active &&
-            check_all_enemies_defeated())
-        {
-            stage_complete = true;
-        }
+            if (stage_failed)
+            {
+                return;
+            }
 
-        if (stage_failed)
-        {
-            return;
+            if (rand() % 1000 < 3)
+                spawn_orb();
         }
+    }
+}
 
-        if (rand() % 1000 < 3)
-            spawn_orb();
+static void draw_text_centered_multiline(ALLEGRO_FONT* f, ALLEGRO_COLOR color, float x, float y,
+                                         const char* text)
+{
+    char buffer[512];
+    strncpy(buffer, text, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+
+    char* line = strtok(buffer, "\n");
+    int line_count = 0;
+    char* temp = strdup(buffer);
+    strncpy(temp, text, sizeof(buffer) - 1);
+    temp[sizeof(buffer) - 1] = '\0';
+    char* count_line = strtok(temp, "\n");
+    while (count_line != NULL)
+    {
+        line_count++;
+        count_line = strtok(NULL, "\n");
+    }
+    free(temp);
+
+    float line_height = 15.0f;
+    float total_height = line_count * line_height;
+    float start_y = y - (total_height / 2.0f);
+    float offset = 0.0f;
+
+    strncpy(buffer, text, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+    line = strtok(buffer, "\n");
+
+    while (line != NULL)
+    {
+        al_draw_text(f, color, x, start_y + offset, ALLEGRO_ALIGN_CENTER, line);
+        offset += line_height;
+        line = strtok(NULL, "\n");
     }
 }
 
@@ -874,6 +1167,222 @@ static void draw(int screen_width, int screen_height)
         }
     }
 
+    if (tutorial_active)
+    {
+        al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+
+        if (tutorial_step == TUTORIAL_WELCOME)
+        {
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(255, 255, 255), screen_width / 2,
+                             screen_height / 2 - 60, ALLEGRO_ALIGN_CENTER,
+                             "GUARDIOES DA IMUNIDADE!");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2,
+                    "Proteja o corpo de invasores!\nUse defensores para eliminar inimigos\nantes "
+                    "que cheguem ao lado esquerdo.");
+                al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                             screen_height / 2 + 70, ALLEGRO_ALIGN_CENTER, "Clique para continuar");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_VITAMINS_EXPLANATION)
+        {
+            al_draw_rectangle(screen_width - 160, 50, screen_width, 110, al_map_rgb(255, 215, 0),
+                              4.0f);
+
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                             screen_height / 2 - 60, ALLEGRO_ALIGN_CENTER, "ORBES DE VITAMINA");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                    screen_height / 2 + 10,
+                    "Orbes de Vitamina sao sua moeda no jogo.\nUse-os para colocar defensores no "
+                    "campo.\nClique nos orbes dourados que caem\npara coletar mais vitaminas.");
+                al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                             screen_height / 2 + 90, ALLEGRO_ALIGN_CENTER, "Clique para continuar");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_WAIT_ORB)
+        {
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                             screen_height / 2, ALLEGRO_ALIGN_CENTER, "AGUARDE O ORBE...");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_COLLECT_ORB)
+        {
+            bool orb_visible = false;
+            float orb_x = 0, orb_y = 0;
+
+            if (tutorial_orb_index >= 0 && orbs[tutorial_orb_index].active)
+            {
+                orb_x = orbs[tutorial_orb_index].x;
+                orb_y = orbs[tutorial_orb_index].y;
+                orb_visible = true;
+            }
+
+            if (orb_visible)
+            {
+                al_draw_circle(orb_x, orb_y, 40.0f, al_map_rgb(255, 215, 0), 4.0f);
+                al_draw_circle(orb_x, orb_y, 50.0f, al_map_rgba(255, 215, 0, 150), 3.0f);
+
+                if (tutorial_font && title_font)
+                {
+                    al_draw_text(title_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                 screen_height / 2 - 140, ALLEGRO_ALIGN_CENTER,
+                                 "CLIQUE NO ORBE DOURADO!");
+                    draw_text_centered_multiline(tutorial_font, al_map_rgb(220, 220, 220),
+                                                 screen_width / 2, screen_height / 2 + 120,
+                                                 "Colete vitaminas clicando\nnos orbes que caem.");
+                }
+            }
+        }
+        else if (tutorial_step == TUTORIAL_DEFENDER_EXPLANATION)
+        {
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                             screen_height / 2 - 60, ALLEGRO_ALIGN_CENTER, "DEFENSORES");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                    screen_height / 2 + 10,
+                    "Defensores sao suas unidades de combate.\nCada um tem um custo em vitaminas "
+                    "(C:)\ne ataca automaticamente inimigos\nque estao na mesma linha.");
+                al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                             screen_height / 2 + 90, ALLEGRO_ALIGN_CENTER, "Clique para continuar");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_SELECT_DEFENDER)
+        {
+            int selector_width = 100;
+            int start_x = 10;
+
+            for (int i = 0; i < in_use_count; i++)
+            {
+                int x1 = start_x + i * (selector_width + 10);
+                int x2 = x1 + selector_width;
+                al_draw_rectangle(x1 - 5, 5, x2 + 5, SELECTOR_HEIGHT - 5, al_map_rgb(0, 255, 0),
+                                  5.0f);
+            }
+
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                             screen_height / 2 - 40, ALLEGRO_ALIGN_CENTER, "SELECIONE UM DEFENSOR");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                    screen_height / 2 + 20,
+                    "Clique em um dos defensores acima.\nCertifique-se de ter vitaminas!");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_PLACE_DEFENDER)
+        {
+            for (int row = 0; row < GRID_ROWS; row++)
+            {
+                for (int col = 0; col < GRID_COLS; col++)
+                {
+                    float x = col * (cell_width + 1.0f);
+                    float y = GRID_START_Y + row * cell_height;
+                    al_draw_rectangle(x, y, x + cell_width, y + cell_height,
+                                      al_map_rgba(0, 255, 0, 120), 2.0f);
+                }
+            }
+
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                             screen_height / 2 - 40, ALLEGRO_ALIGN_CENTER, "COLOQUE O DEFENSOR");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                    screen_height / 2 + 30,
+                    "Clique em uma celula do grid\npara posicionar seu defensor.");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_WAIT_ENEMY)
+        {
+        }
+        else if (tutorial_step == TUTORIAL_ENEMY_EXPLANATION)
+        {
+            bool enemy_found = false;
+            float enemy_x = 0, enemy_y = 0;
+
+            for (int i = 0; i < MAX_ENEMIES; i++)
+            {
+                if (enemies[i].active)
+                {
+                    enemy_x = enemies[i].x;
+                    enemy_y = enemies[i].y;
+                    enemy_found = true;
+                    al_draw_circle(enemy_x, enemy_y, 50.0f, al_map_rgb(255, 100, 100), 4.0f);
+                    al_draw_circle(enemy_x, enemy_y, 60.0f, al_map_rgba(255, 100, 100, 150), 3.0f);
+                    break;
+                }
+            }
+
+            if (enemy_found && tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(255, 100, 100), screen_width / 2,
+                             screen_height / 2 - 130, ALLEGRO_ALIGN_CENTER, "INIMIGOS!");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                    screen_height / 2 + 80,
+                    "Inimigos vem da direita e vao para esquerda.\nNao deixe eles chegarem ao lado "
+                    "esquerdo!\nSeu defensor vai atacar automaticamente.");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION)
+        {
+            bool projectile_found = false;
+            float proj_x = 0, proj_y = 0;
+
+            for (int i = 0; i < MAX_PROJECTILES; i++)
+            {
+                if (projectiles[i].active)
+                {
+                    proj_x = projectiles[i].x;
+                    proj_y = projectiles[i].y;
+                    projectile_found = true;
+                    break;
+                }
+            }
+
+            if (projectile_found)
+            {
+                al_draw_circle(proj_x, proj_y, 30.0f, al_map_rgb(255, 255, 255), 4.0f);
+            }
+
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(255, 255, 255), screen_width / 2,
+                             screen_height / 2 - 130, ALLEGRO_ALIGN_CENTER, "PROJETEIS!");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                    screen_height / 2 + 80,
+                    "Defensores disparam automaticamente\nquando detectam inimigos na mesma "
+                    "linha.\nCada defensor tem poder diferente.");
+            }
+        }
+        else if (tutorial_step == TUTORIAL_OBJECTIVE_EXPLANATION)
+        {
+            if (tutorial_font && title_font)
+            {
+                al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                             screen_height / 2 - 80, ALLEGRO_ALIGN_CENTER, "OBJETIVO DO JOGO");
+                draw_text_centered_multiline(
+                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                    screen_height / 2 + 10,
+                    "1. Colete Orbes de Vitamina\n2. Use vitaminas para colocar defensores\n3. "
+                    "Elimine todos os inimigos de cada onda\n4. Nao deixe inimigos chegarem a "
+                    "esquerda!");
+                al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                             screen_height / 2 + 100, ALLEGRO_ALIGN_CENTER, "Clique para comecar!");
+            }
+        }
+    }
+
     if (stage_complete)
     {
         al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 200));
@@ -886,9 +1395,8 @@ static void draw(int screen_width, int screen_height)
             sprintf(reward_text, "Vacinas ganhas: %d", enemies_killed_this_stage);
             al_draw_text(font, al_map_rgb(255, 215, 0), screen_width / 2, screen_height / 2,
                          ALLEGRO_ALIGN_CENTER, reward_text);
-
             al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, screen_height / 2 + 30,
-                         ALLEGRO_ALIGN_CENTER, "Pressione qualquer tecla para continuar");
+                         ALLEGRO_ALIGN_CENTER, "Pressione qualquer tecla");
         }
     }
 
@@ -900,7 +1408,7 @@ static void draw(int screen_width, int screen_height)
             al_draw_text(title_font, al_map_rgb(255, 0, 0), screen_width / 2,
                          screen_height / 2 - 50, ALLEGRO_ALIGN_CENTER, "FASE FALHOU!");
             al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, screen_height / 2 + 20,
-                         ALLEGRO_ALIGN_CENTER, "Pressione qualquer tecla para tentar novamente");
+                         ALLEGRO_ALIGN_CENTER, "Pressione qualquer tecla");
         }
     }
 }
@@ -923,6 +1431,12 @@ static void destroy(void)
     {
         al_destroy_font(title_font);
         title_font = NULL;
+    }
+
+    if (tutorial_font)
+    {
+        al_destroy_font(tutorial_font);
+        tutorial_font = NULL;
     }
 
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
