@@ -59,8 +59,6 @@ static void on_microorganism_change(void* context)
 
 static void init(ALLEGRO_DISPLAY* display)
 {
-    load_microorganisms();
-
     background = al_load_bitmap("assets/images/menu/background_bestiary.png");
 
     microorganisms_indexes_memo = malloc(sizeof(int) * total_microorganisms);

@@ -15,9 +15,9 @@ static ImmuneCell defenders[] = {
                     "Representa funções típicas de fagócitos, como neutrófilos e macrófagos.",
                 .health = 120,
                 .speed = 0.4f,
-                .attack = 10,
+                .attack = 1,
                 .defense = 4,
-                .attack_cooldown = 1.5f,
+                .attack_cooldown = 3,
                 .active = false,
                 .row = 0,
                 .col = 0,
@@ -26,7 +26,7 @@ static ImmuneCell defenders[] = {
                 .image_path = "assets/images/defenders/white_blood_cell.png",
                 .image = NULL,
             },
-        .cost_to_place = 15,
+        .cost_to_place = 50,
     },
     {
         .base =
@@ -37,9 +37,9 @@ static ImmuneCell defenders[] = {
                                "ajudar na defesa contra patógenos.",
                 .health = 100,
                 .speed = 0.5f,
-                .attack = 0,
+                .attack = 5,
                 .defense = 5,
-                .attack_cooldown = 0,
+                .attack_cooldown = 2,
                 .active = false,
                 .row = 0,
                 .col = 0,
@@ -48,7 +48,7 @@ static ImmuneCell defenders[] = {
                 .image_path = "assets/images/defenders/basophil.png",
                 .image = NULL,
             },
-        .cost_to_place = 10,
+        .cost_to_place = 100,
     },
     {
         .base =
@@ -59,9 +59,9 @@ static ImmuneCell defenders[] = {
                     "modulação de respostas alérgicas, liberando enzimas e proteínas tóxicas.",
                 .health = 80,
                 .speed = 0.6f,
-                .attack = 5,
+                .attack = 3,
                 .defense = 3,
-                .attack_cooldown = 1.0f,
+                .attack_cooldown = 2.5,
                 .active = false,
                 .row = 0,
                 .col = 0,
@@ -70,7 +70,7 @@ static ImmuneCell defenders[] = {
                 .image_path = "assets/images/defenders/eosinophil.png",
                 .image = NULL,
             },
-        .cost_to_place = 12,
+        .cost_to_place = 75,
     },
 };
 

@@ -25,6 +25,7 @@ int main()
 
     init_fonts();
     init_colors();
+    load_microorganisms();
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
