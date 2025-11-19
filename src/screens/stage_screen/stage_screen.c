@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "../../core/game.h"
@@ -197,7 +198,7 @@ static void load_in_use_defenders(void)
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
     {
         int defender_id = PLAYER_ENTITY->in_use_slots[i];
-        if (defender_id >= 0 && PLAYER_ENTITY->defenders[defender_id].unlocked)
+        if (defender_id >= 0 && defender_id < 10 && PLAYER_ENTITY->defenders[defender_id].unlocked)
         {
             in_use_defenders[in_use_count] = defender_id;
             in_use_count++;
@@ -290,7 +291,7 @@ static void spawn_orb(void)
 
 static void load_images(void)
 {
-    for (int i = 0; i < in_use_count; i++)
+    for (int i = 0; i < in_use_count && i < MAX_IN_USE_SLOTS; i++)
     {
         int defender_id = in_use_defenders[i];
         if (defender_id >= 0 && defender_id < 10)
@@ -372,6 +373,9 @@ static void add_defender(int row, int col, int defender_slot)
     if (placement_cooldown > 0.0f)
         return;
 
+    if (defender_slot < 0 || defender_slot >= in_use_count)
+        return;
+
     int cost = defender_costs[defender_slot];
     if (vitamins < cost)
         return;
@@ -409,6 +413,9 @@ static void add_defender(int row, int col, int defender_slot)
 
 static void shoot_projectile(int row, int col, int defender_slot)
 {
+    if (defender_slot < 0 || defender_slot >= 3)
+        return;
+
     for (int i = 0; i < MAX_PROJECTILES; i++)
     {
         if (!projectiles[i].active)
@@ -749,6 +756,10 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                 {
                     tutorial_step = TUTORIAL_COMPLETE;
                     tutorial_active = false;
+                    wave_timer = 0.0f;
+                    current_wave = 0;
+                    wave_active = false;
+                    enemies_spawned_in_wave = 0;
                 }
                 return;
             }
@@ -975,11 +986,9 @@ static void draw_text_centered_multiline(ALLEGRO_FONT* f, ALLEGRO_COLOR color, f
     strncpy(buffer, text, sizeof(buffer) - 1);
     buffer[sizeof(buffer) - 1] = '\0';
 
-    char* line = strtok(buffer, "\n");
     int line_count = 0;
-    char* temp = strdup(buffer);
-    strncpy(temp, text, sizeof(buffer) - 1);
-    temp[sizeof(buffer) - 1] = '\0';
+    char* temp = malloc(strlen(text) + 1);
+    strcpy(temp, text);
     char* count_line = strtok(temp, "\n");
     while (count_line != NULL)
     {
@@ -991,17 +1000,160 @@ static void draw_text_centered_multiline(ALLEGRO_FONT* f, ALLEGRO_COLOR color, f
     float line_height = 15.0f;
     float total_height = line_count * line_height;
     float start_y = y - (total_height / 2.0f);
-    float offset = 0.0f;
 
-    strncpy(buffer, text, sizeof(buffer) - 1);
-    buffer[sizeof(buffer) - 1] = '\0';
-    line = strtok(buffer, "\n");
+    strcpy(buffer, text);
+    char* line = strtok(buffer, "\n");
+    float offset = 0.0f;
 
     while (line != NULL)
     {
         al_draw_text(f, color, x, start_y + offset, ALLEGRO_ALIGN_CENTER, line);
         offset += line_height;
         line = strtok(NULL, "\n");
+    }
+}
+
+static void draw_game_elements(int screen_width, int screen_height)
+{
+    int selector_width = 100;
+    int start_x = 10;
+
+    for (int i = 0; i < in_use_count; i++)
+    {
+        int x1 = start_x + i * (selector_width + 10);
+        int x2 = x1 + selector_width;
+        ALLEGRO_COLOR color;
+        ALLEGRO_COLOR border_color;
+        ALLEGRO_COLOR text_color;
+
+        if (vitamins >= defender_costs[i])
+        {
+            color = (selected_defender_slot == i) ? al_map_rgba(0, 255, 0, 180)
+                                                  : al_map_rgba(80, 80, 80, 150);
+            border_color = al_map_rgb(255, 255, 255);
+            text_color = al_map_rgb(255, 215, 0);
+        }
+        else
+        {
+            color = al_map_rgba(40, 40, 40, 80);
+            border_color = al_map_rgb(100, 100, 100);
+            text_color = al_map_rgb(150, 150, 150);
+        }
+
+        al_draw_filled_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, color);
+        al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, border_color, 2.0f);
+
+        if (defender_images[i])
+        {
+            al_draw_scaled_bitmap(defender_images[i], 0, 0, defender_w[i], defender_h[i], x1 + 35,
+                                  15, 35, 35, 0);
+        }
+
+        char cost_text[16];
+        sprintf(cost_text, "C:%d", defender_costs[i]);
+        if (font)
+            al_draw_text(font, text_color, x1 + 50, 50, ALLEGRO_ALIGN_CENTER, cost_text);
+    }
+
+    char stage_text[32];
+    sprintf(stage_text, "Fase %d", stage_config.stage_number);
+    al_draw_filled_rectangle(screen_width / 2 - 100, 10, screen_width / 2 + 100, 50,
+                             al_map_rgba(0, 0, 0, 180));
+    if (font)
+        al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, 25, ALLEGRO_ALIGN_CENTER,
+                     stage_text);
+
+    char wave_text[32];
+    sprintf(wave_text, "Onda: %d/%d", current_wave, stage_config.total_waves);
+    al_draw_filled_rectangle(screen_width - 150, 10, screen_width - 10, 50,
+                             al_map_rgba(0, 0, 0, 180));
+    if (font)
+        al_draw_text(font, al_map_rgb(255, 255, 255), screen_width - 80, 25, ALLEGRO_ALIGN_CENTER,
+                     wave_text);
+
+    char vitamins_text[32];
+    sprintf(vitamins_text, "Vitaminas: %d", vitamins);
+    al_draw_filled_rectangle(screen_width - 150, 60, screen_width - 10, 100,
+                             al_map_rgba(0, 0, 0, 180));
+    if (font)
+        al_draw_text(font, al_map_rgb(255, 215, 0), screen_width - 80, 78, ALLEGRO_ALIGN_CENTER,
+                     vitamins_text);
+
+    for (int i = 0; i < MAX_DEFENDERS; i++)
+    {
+        if (defenders[i].active)
+        {
+            int slot = defenders[i].defender_slot;
+            if (slot >= 0 && slot < in_use_count && defender_images[slot])
+            {
+                float x = defenders[i].col * (cell_width + 1.0f);
+                float y = GRID_START_Y + defenders[i].row * cell_height;
+                float scale =
+                    (defender_w[slot] > 0) ? (cell_width * 0.8f) / (float)defender_w[slot] : 1.0f;
+                float img_w = defender_w[slot] * scale;
+                float img_h = defender_h[slot] * scale;
+
+                al_draw_scaled_bitmap(defender_images[slot], 0, 0, defender_w[slot],
+                                      defender_h[slot], x + (cell_width - img_w) / 2.0f,
+                                      y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
+            }
+        }
+    }
+
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        if (enemies[i].active && enemy_images[enemies[i].type])
+        {
+            float size = 60.0f;
+            al_draw_scaled_bitmap(enemy_images[enemies[i].type], 0, 0, enemy_w[enemies[i].type],
+                                  enemy_h[enemies[i].type], enemies[i].x - size / 2.0f,
+                                  enemies[i].y - size / 2.0f, size, size, 0);
+        }
+    }
+
+    for (int i = 0; i < MAX_PROJECTILES; i++)
+    {
+        if (projectiles[i].active)
+        {
+            float anim = projectiles[i].animation_time;
+
+            if (projectiles[i].type == PROJECTILE_WHITE_BALL)
+            {
+                float pulse = sin(anim * 10.0f) * 2.0f;
+                al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 12.0f + pulse,
+                                      al_map_rgb(255, 255, 255));
+            }
+            else if (projectiles[i].type == PROJECTILE_BLUE_MAGIC)
+            {
+                al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 10.0f,
+                                      al_map_rgb(100, 200, 255));
+            }
+            else if (projectiles[i].type == PROJECTILE_RED_LASER)
+            {
+                al_draw_filled_rectangle(projectiles[i].x - 25, projectiles[i].y - 4,
+                                         projectiles[i].x + 25, projectiles[i].y + 4,
+                                         al_map_rgb(255, 30, 30));
+            }
+        }
+    }
+
+    for (int i = 0; i < MAX_ORBS; i++)
+    {
+        if (orbs[i].active)
+        {
+            al_draw_filled_circle(orbs[i].x, orbs[i].y, 15.0f, al_map_rgb(255, 215, 0));
+        }
+    }
+
+    for (int i = 0; i < MAX_PARTICLES; i++)
+    {
+        if (particles[i].life > 0.0f)
+        {
+            float alpha_factor = particles[i].life / particles[i].max_life;
+            ALLEGRO_COLOR particle_color = particles[i].color;
+            particle_color.a = alpha_factor;
+            al_draw_filled_circle(particles[i].x, particles[i].y, 3.0f, particle_color);
+        }
     }
 }
 
@@ -1023,171 +1175,22 @@ static void draw(int screen_width, int screen_height)
                               al_get_bitmap_height(background), 0, 0, screen_width, screen_height,
                               0);
 
-        int selector_width = 100;
-        int start_x = 10;
-
-        for (int i = 0; i < in_use_count; i++)
-        {
-            int x1 = start_x + i * (selector_width + 10);
-            int x2 = x1 + selector_width;
-            ALLEGRO_COLOR color;
-            ALLEGRO_COLOR border_color;
-            ALLEGRO_COLOR text_color;
-
-            if (vitamins >= defender_costs[i])
-            {
-                color = (selected_defender_slot == i) ? al_map_rgba(0, 255, 0, 180)
-                                                      : al_map_rgba(80, 80, 80, 150);
-                border_color = al_map_rgb(255, 255, 255);
-                text_color = al_map_rgb(255, 215, 0);
-            }
-            else
-            {
-                color = al_map_rgba(40, 40, 40, 80);
-                border_color = al_map_rgb(100, 100, 100);
-                text_color = al_map_rgb(150, 150, 150);
-            }
-
-            al_draw_filled_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, color);
-            al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, border_color, 2.0f);
-
-            if (defender_images[i])
-            {
-                al_draw_scaled_bitmap(defender_images[i], 0, 0, defender_w[i], defender_h[i],
-                                      x1 + 35, 15, 35, 35, 0);
-            }
-
-            char cost_text[16];
-            sprintf(cost_text, "C:%d", defender_costs[i]);
-            if (font)
-                al_draw_text(font, text_color, x1 + 50, 50, ALLEGRO_ALIGN_CENTER, cost_text);
-        }
-
-        char stage_text[32];
-        sprintf(stage_text, "Fase %d", stage_config.stage_number);
-        al_draw_filled_rectangle(screen_width / 2 - 100, 10, screen_width / 2 + 100, 50,
-                                 al_map_rgba(0, 0, 0, 180));
-        if (font)
-            al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, 25,
-                         ALLEGRO_ALIGN_CENTER, stage_text);
-
-        char wave_text[32];
-        sprintf(wave_text, "Onda: %d/%d", current_wave, stage_config.total_waves);
-        al_draw_filled_rectangle(screen_width - 150, 10, screen_width - 10, 50,
-                                 al_map_rgba(0, 0, 0, 180));
-        if (font)
-            al_draw_text(font, al_map_rgb(255, 255, 255), screen_width - 80, 25,
-                         ALLEGRO_ALIGN_CENTER, wave_text);
-
-        char vitamins_text[32];
-        sprintf(vitamins_text, "Vitaminas: %d", vitamins);
-        al_draw_filled_rectangle(screen_width - 150, 60, screen_width - 10, 100,
-                                 al_map_rgba(0, 0, 0, 180));
-        if (font)
-            al_draw_text(font, al_map_rgb(255, 215, 0), screen_width - 80, 78, ALLEGRO_ALIGN_CENTER,
-                         vitamins_text);
-
-        for (int i = 0; i < MAX_DEFENDERS; i++)
-        {
-            if (defenders[i].active)
-            {
-                int slot = defenders[i].defender_slot;
-                if (slot >= 0 && slot < in_use_count && defender_images[slot])
-                {
-                    float x = defenders[i].col * (cell_width + 1.0f);
-                    float y = GRID_START_Y + defenders[i].row * cell_height;
-                    float scale = (defender_w[slot] > 0)
-                                      ? (cell_width * 0.8f) / (float)defender_w[slot]
-                                      : 1.0f;
-                    float img_w = defender_w[slot] * scale;
-                    float img_h = defender_h[slot] * scale;
-
-                    al_draw_scaled_bitmap(defender_images[slot], 0, 0, defender_w[slot],
-                                          defender_h[slot], x + (cell_width - img_w) / 2.0f,
-                                          y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h,
-                                          0);
-                }
-            }
-        }
-
-        for (int i = 0; i < MAX_ENEMIES; i++)
-        {
-            if (enemies[i].active && enemy_images[enemies[i].type])
-            {
-                float size = 60.0f;
-                al_draw_scaled_bitmap(enemy_images[enemies[i].type], 0, 0, enemy_w[enemies[i].type],
-                                      enemy_h[enemies[i].type], enemies[i].x - size / 2.0f,
-                                      enemies[i].y - size / 2.0f, size, size, 0);
-            }
-        }
-
-        for (int i = 0; i < MAX_PROJECTILES; i++)
-        {
-            if (projectiles[i].active)
-            {
-                float anim = projectiles[i].animation_time;
-
-                if (projectiles[i].type == PROJECTILE_WHITE_BALL)
-                {
-                    float pulse = sin(anim * 10.0f) * 2.0f;
-                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 12.0f + pulse,
-                                          al_map_rgb(255, 255, 255));
-                }
-                else if (projectiles[i].type == PROJECTILE_BLUE_MAGIC)
-                {
-                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 10.0f,
-                                          al_map_rgb(100, 200, 255));
-                }
-                else if (projectiles[i].type == PROJECTILE_RED_LASER)
-                {
-                    al_draw_filled_rectangle(projectiles[i].x - 25, projectiles[i].y - 4,
-                                             projectiles[i].x + 25, projectiles[i].y + 4,
-                                             al_map_rgb(255, 30, 30));
-                }
-            }
-        }
-
-        for (int i = 0; i < MAX_ORBS; i++)
-        {
-            if (orbs[i].active)
-            {
-                al_draw_filled_circle(orbs[i].x, orbs[i].y, 15.0f, al_map_rgb(255, 215, 0));
-            }
-        }
-
-        for (int i = 0; i < MAX_PARTICLES; i++)
-        {
-            if (particles[i].life > 0.0f)
-            {
-                float alpha_factor = particles[i].life / particles[i].max_life;
-                ALLEGRO_COLOR particle_color = particles[i].color;
-                particle_color.a = alpha_factor;
-                al_draw_filled_circle(particles[i].x, particles[i].y, 3.0f, particle_color);
-            }
-        }
+        draw_game_elements(screen_width, screen_height);
     }
 
     if (tutorial_active)
     {
-        al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+        if (tutorial_step == TUTORIAL_VITAMINS_EXPLANATION)
+        {
+            al_draw_filled_rectangle(0, 0, screen_width - 160, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(screen_width, 0, screen_width, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(screen_width - 160, 0, screen_width, 50,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(screen_width - 160, 110, screen_width, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
 
-        if (tutorial_step == TUTORIAL_WELCOME)
-        {
-            if (tutorial_font && title_font)
-            {
-                al_draw_text(title_font, al_map_rgb(255, 255, 255), screen_width / 2,
-                             screen_height / 2 - 60, ALLEGRO_ALIGN_CENTER,
-                             "GUARDIOES DA IMUNIDADE!");
-                draw_text_centered_multiline(
-                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2,
-                    "Proteja o corpo de invasores!\nUse defensores para eliminar inimigos\nantes "
-                    "que cheguem ao lado esquerdo.");
-                al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
-                             screen_height / 2 + 70, ALLEGRO_ALIGN_CENTER, "Clique para continuar");
-            }
-        }
-        else if (tutorial_step == TUTORIAL_VITAMINS_EXPLANATION)
-        {
             al_draw_rectangle(screen_width - 160, 50, screen_width, 110, al_map_rgb(255, 215, 0),
                               4.0f);
 
@@ -1204,59 +1207,11 @@ static void draw(int screen_width, int screen_height)
                              screen_height / 2 + 90, ALLEGRO_ALIGN_CENTER, "Clique para continuar");
             }
         }
-        else if (tutorial_step == TUTORIAL_WAIT_ORB)
-        {
-            if (tutorial_font && title_font)
-            {
-                al_draw_text(title_font, al_map_rgb(255, 215, 0), screen_width / 2,
-                             screen_height / 2, ALLEGRO_ALIGN_CENTER, "AGUARDE O ORBE...");
-            }
-        }
-        else if (tutorial_step == TUTORIAL_COLLECT_ORB)
-        {
-            bool orb_visible = false;
-            float orb_x = 0, orb_y = 0;
-
-            if (tutorial_orb_index >= 0 && orbs[tutorial_orb_index].active)
-            {
-                orb_x = orbs[tutorial_orb_index].x;
-                orb_y = orbs[tutorial_orb_index].y;
-                orb_visible = true;
-            }
-
-            if (orb_visible)
-            {
-                al_draw_circle(orb_x, orb_y, 40.0f, al_map_rgb(255, 215, 0), 4.0f);
-                al_draw_circle(orb_x, orb_y, 50.0f, al_map_rgba(255, 215, 0, 150), 3.0f);
-
-                if (tutorial_font && title_font)
-                {
-                    al_draw_text(title_font, al_map_rgb(255, 215, 0), screen_width / 2,
-                                 screen_height / 2 - 140, ALLEGRO_ALIGN_CENTER,
-                                 "CLIQUE NO ORBE DOURADO!");
-                    draw_text_centered_multiline(tutorial_font, al_map_rgb(220, 220, 220),
-                                                 screen_width / 2, screen_height / 2 + 120,
-                                                 "Colete vitaminas clicando\nnos orbes que caem.");
-                }
-            }
-        }
-        else if (tutorial_step == TUTORIAL_DEFENDER_EXPLANATION)
-        {
-            if (tutorial_font && title_font)
-            {
-                al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
-                             screen_height / 2 - 60, ALLEGRO_ALIGN_CENTER, "DEFENSORES");
-                draw_text_centered_multiline(
-                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
-                    screen_height / 2 + 10,
-                    "Defensores sao suas unidades de combate.\nCada um tem um custo em vitaminas "
-                    "(C:)\ne ataca automaticamente inimigos\nque estao na mesma linha.");
-                al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
-                             screen_height / 2 + 90, ALLEGRO_ALIGN_CENTER, "Clique para continuar");
-            }
-        }
         else if (tutorial_step == TUTORIAL_SELECT_DEFENDER)
         {
+            al_draw_filled_rectangle(0, SELECTOR_HEIGHT, screen_width, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
+
             int selector_width = 100;
             int start_x = 10;
 
@@ -1280,6 +1235,8 @@ static void draw(int screen_width, int screen_height)
         }
         else if (tutorial_step == TUTORIAL_PLACE_DEFENDER)
         {
+            al_draw_filled_rectangle(0, 0, screen_width, GRID_START_Y, al_map_rgba(0, 0, 0, 180));
+
             for (int row = 0; row < GRID_ROWS; row++)
             {
                 for (int col = 0; col < GRID_COLS; col++)
@@ -1301,84 +1258,160 @@ static void draw(int screen_width, int screen_height)
                     "Clique em uma celula do grid\npara posicionar seu defensor.");
             }
         }
-        else if (tutorial_step == TUTORIAL_WAIT_ENEMY)
+        else if (tutorial_step != TUTORIAL_WAIT_ENEMY)
         {
-        }
-        else if (tutorial_step == TUTORIAL_ENEMY_EXPLANATION)
-        {
-            bool enemy_found = false;
-            float enemy_x = 0, enemy_y = 0;
+            al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
 
-            for (int i = 0; i < MAX_ENEMIES; i++)
+            if (tutorial_step == TUTORIAL_WELCOME)
             {
-                if (enemies[i].active)
+                if (tutorial_font && title_font)
                 {
-                    enemy_x = enemies[i].x;
-                    enemy_y = enemies[i].y;
-                    enemy_found = true;
-                    al_draw_circle(enemy_x, enemy_y, 50.0f, al_map_rgb(255, 100, 100), 4.0f);
-                    al_draw_circle(enemy_x, enemy_y, 60.0f, al_map_rgba(255, 100, 100, 150), 3.0f);
-                    break;
+                    al_draw_text(title_font, al_map_rgb(255, 255, 255), screen_width / 2,
+                                 screen_height / 2 - 60, ALLEGRO_ALIGN_CENTER,
+                                 "GUARDIOES DA IMUNIDADE!");
+                    draw_text_centered_multiline(tutorial_font, al_map_rgb(220, 220, 220),
+                                                 screen_width / 2, screen_height / 2,
+                                                 "Proteja o corpo de invasores!\nUse defensores "
+                                                 "para eliminar inimigos\nantes "
+                                                 "que cheguem ao lado esquerdo.");
+                    al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                 screen_height / 2 + 70, ALLEGRO_ALIGN_CENTER,
+                                 "Clique para continuar");
                 }
             }
-
-            if (enemy_found && tutorial_font && title_font)
+            else if (tutorial_step == TUTORIAL_WAIT_ORB)
             {
-                al_draw_text(title_font, al_map_rgb(255, 100, 100), screen_width / 2,
-                             screen_height / 2 - 130, ALLEGRO_ALIGN_CENTER, "INIMIGOS!");
-                draw_text_centered_multiline(
-                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
-                    screen_height / 2 + 80,
-                    "Inimigos vem da direita e vao para esquerda.\nNao deixe eles chegarem ao lado "
-                    "esquerdo!\nSeu defensor vai atacar automaticamente.");
-            }
-        }
-        else if (tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION)
-        {
-            bool projectile_found = false;
-            float proj_x = 0, proj_y = 0;
-
-            for (int i = 0; i < MAX_PROJECTILES; i++)
-            {
-                if (projectiles[i].active)
+                if (tutorial_font && title_font)
                 {
-                    proj_x = projectiles[i].x;
-                    proj_y = projectiles[i].y;
-                    projectile_found = true;
-                    break;
+                    al_draw_text(title_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                 screen_height / 2, ALLEGRO_ALIGN_CENTER, "AGUARDE O ORBE...");
                 }
             }
+            else if (tutorial_step == TUTORIAL_COLLECT_ORB)
+            {
+                bool orb_visible = false;
+                float orb_x = 0, orb_y = 0;
 
-            if (projectile_found)
-            {
-                al_draw_circle(proj_x, proj_y, 30.0f, al_map_rgb(255, 255, 255), 4.0f);
-            }
+                if (tutorial_orb_index >= 0 && orbs[tutorial_orb_index].active)
+                {
+                    orb_x = orbs[tutorial_orb_index].x;
+                    orb_y = orbs[tutorial_orb_index].y;
+                    orb_visible = true;
+                }
 
-            if (tutorial_font && title_font)
-            {
-                al_draw_text(title_font, al_map_rgb(255, 255, 255), screen_width / 2,
-                             screen_height / 2 - 130, ALLEGRO_ALIGN_CENTER, "PROJETEIS!");
-                draw_text_centered_multiline(
-                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
-                    screen_height / 2 + 80,
-                    "Defensores disparam automaticamente\nquando detectam inimigos na mesma "
-                    "linha.\nCada defensor tem poder diferente.");
+                if (orb_visible)
+                {
+                    al_draw_circle(orb_x, orb_y, 40.0f, al_map_rgb(255, 215, 0), 4.0f);
+                    al_draw_circle(orb_x, orb_y, 50.0f, al_map_rgba(255, 215, 0, 150), 3.0f);
+
+                    if (tutorial_font && title_font)
+                    {
+                        al_draw_text(title_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                     screen_height / 2 - 140, ALLEGRO_ALIGN_CENTER,
+                                     "CLIQUE NO ORBE DOURADO!");
+                        draw_text_centered_multiline(
+                            tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                            screen_height / 2 + 120,
+                            "Colete vitaminas clicando\nnos orbes que caem.");
+                    }
+                }
             }
-        }
-        else if (tutorial_step == TUTORIAL_OBJECTIVE_EXPLANATION)
-        {
-            if (tutorial_font && title_font)
+            else if (tutorial_step == TUTORIAL_DEFENDER_EXPLANATION)
             {
-                al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
-                             screen_height / 2 - 80, ALLEGRO_ALIGN_CENTER, "OBJETIVO DO JOGO");
-                draw_text_centered_multiline(
-                    tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
-                    screen_height / 2 + 10,
-                    "1. Colete Orbes de Vitamina\n2. Use vitaminas para colocar defensores\n3. "
-                    "Elimine todos os inimigos de cada onda\n4. Nao deixe inimigos chegarem a "
-                    "esquerda!");
-                al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
-                             screen_height / 2 + 100, ALLEGRO_ALIGN_CENTER, "Clique para comecar!");
+                if (tutorial_font && title_font)
+                {
+                    al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                                 screen_height / 2 - 60, ALLEGRO_ALIGN_CENTER, "DEFENSORES");
+                    draw_text_centered_multiline(
+                        tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                        screen_height / 2 + 10,
+                        "Defensores sao suas unidades de combate.\nCada um tem um custo em "
+                        "vitaminas "
+                        "(C:)\ne ataca automaticamente inimigos\nque estao na mesma linha.");
+                    al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                 screen_height / 2 + 90, ALLEGRO_ALIGN_CENTER,
+                                 "Clique para continuar");
+                }
+            }
+            else if (tutorial_step == TUTORIAL_ENEMY_EXPLANATION)
+            {
+                bool enemy_found = false;
+                float enemy_x = 0, enemy_y = 0;
+
+                for (int i = 0; i < MAX_ENEMIES; i++)
+                {
+                    if (enemies[i].active)
+                    {
+                        enemy_x = enemies[i].x;
+                        enemy_y = enemies[i].y;
+                        enemy_found = true;
+                        al_draw_circle(enemy_x, enemy_y, 50.0f, al_map_rgb(255, 100, 100), 4.0f);
+                        al_draw_circle(enemy_x, enemy_y, 60.0f, al_map_rgba(255, 100, 100, 150),
+                                       3.0f);
+                        break;
+                    }
+                }
+
+                if (enemy_found && tutorial_font && title_font)
+                {
+                    al_draw_text(title_font, al_map_rgb(255, 100, 100), screen_width / 2,
+                                 screen_height / 2 - 130, ALLEGRO_ALIGN_CENTER, "INIMIGOS!");
+                    draw_text_centered_multiline(
+                        tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                        screen_height / 2 + 80,
+                        "Inimigos vem da direita e vao para esquerda.\nNao deixe eles chegarem ao "
+                        "lado "
+                        "esquerdo!\nSeu defensor vai atacar automaticamente.");
+                }
+            }
+            else if (tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION)
+            {
+                bool projectile_found = false;
+                float proj_x = 0, proj_y = 0;
+
+                for (int i = 0; i < MAX_PROJECTILES; i++)
+                {
+                    if (projectiles[i].active)
+                    {
+                        proj_x = projectiles[i].x;
+                        proj_y = projectiles[i].y;
+                        projectile_found = true;
+                        break;
+                    }
+                }
+
+                if (projectile_found)
+                {
+                    al_draw_circle(proj_x, proj_y, 30.0f, al_map_rgb(255, 255, 255), 4.0f);
+                }
+
+                if (tutorial_font && title_font)
+                {
+                    al_draw_text(title_font, al_map_rgb(255, 255, 255), screen_width / 2,
+                                 screen_height / 2 - 130, ALLEGRO_ALIGN_CENTER, "PROJETEIS!");
+                    draw_text_centered_multiline(
+                        tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                        screen_height / 2 + 80,
+                        "Defensores disparam automaticamente\nquando detectam inimigos na mesma "
+                        "linha.\nCada defensor tem poder diferente.");
+                }
+            }
+            else if (tutorial_step == TUTORIAL_OBJECTIVE_EXPLANATION)
+            {
+                if (tutorial_font && title_font)
+                {
+                    al_draw_text(title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                                 screen_height / 2 - 80, ALLEGRO_ALIGN_CENTER, "OBJETIVO DO JOGO");
+                    draw_text_centered_multiline(
+                        tutorial_font, al_map_rgb(220, 220, 220), screen_width / 2,
+                        screen_height / 2 + 10,
+                        "1. Colete Orbes de Vitamina\n2. Use vitaminas para colocar defensores\n3. "
+                        "Elimine todos os inimigos de cada onda\n4. Nao deixe inimigos chegarem a "
+                        "esquerda!");
+                    al_draw_text(tutorial_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                 screen_height / 2 + 100, ALLEGRO_ALIGN_CENTER,
+                                 "Clique para comecar!");
+                }
             }
         }
     }
