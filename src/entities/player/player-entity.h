@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#include "../entities.h"
+
 #define MAX_DEFENDERS_INVENTORY 10
 #define MAX_IN_USE_SLOTS 3
 

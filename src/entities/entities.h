@@ -24,6 +24,7 @@ typedef struct
     bool active;
     int row;
     int col;
+    int slot;
     float x;
     float y;
     ProjectileType projectile_type;
@@ -35,6 +36,7 @@ typedef struct
 {
     Entity base;
     float cost_to_place;
+    int defender_id;
 } ImmuneCell;
 
 typedef struct
@@ -54,5 +56,9 @@ extern Microorganism microorganisms[];
 extern int total_microorganisms;
 
 void load_microorganisms();
+
+const ImmuneCell* get_immunecell_by_index(int index);
+
+int get_immunecell_count();
 
 #endif

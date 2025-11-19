@@ -9,6 +9,28 @@ static ImmuneCell defenders[] = {
     {
         .base =
             {
+                .name = "Glóbulo Branco",
+                .description =
+                    "Célula de defesa que identifica, engole e destrói microrganismos invasores. "
+                    "Representa funções típicas de fagócitos, como neutrófilos e macrófagos.",
+                .health = 120,
+                .speed = 0.4f,
+                .attack = 10,
+                .defense = 4,
+                .attack_cooldown = 1.5f,
+                .active = false,
+                .row = 0,
+                .col = 0,
+                .x = 0,
+                .y = 0,
+                .image_path = "assets/images/defenders/white_blood_cell.png",
+                .image = NULL,
+            },
+        .cost_to_place = 15,
+    },
+    {
+        .base =
+            {
                 .name = "Basófilo",
                 .description = "Célula do sistema imunológico envolvida em reações alérgicas e "
                                "inflamatórias. Libera histamina e outras substâncias químicas para "
@@ -49,28 +71,6 @@ static ImmuneCell defenders[] = {
                 .image = NULL,
             },
         .cost_to_place = 12,
-    },
-    {
-        .base =
-            {
-                .name = "Glóbulo Branco",
-                .description =
-                    "Célula de defesa que identifica, engole e destrói microrganismos invasores. "
-                    "Representa funções típicas de fagócitos, como neutrófilos e macrófagos.",
-                .health = 120,
-                .speed = 0.4f,
-                .attack = 10,
-                .defense = 4,
-                .attack_cooldown = 1.5f,
-                .active = false,
-                .row = 0,
-                .col = 0,
-                .x = 0,
-                .y = 0,
-                .image_path = "assets/images/defenders/white_blood_cell.png",
-                .image = NULL,
-            },
-        .cost_to_place = 15,
     },
 };
 
@@ -151,6 +151,7 @@ void load_microorganisms()
 
     for (i = 0; i < defenders_count; i++)
     {
+        defenders[i].defender_id = i;
         microorganisms[microorganisms_index].is_defender = true;
         microorganisms[microorganisms_index].entity = &defenders[i].base;
 
@@ -181,3 +182,15 @@ void load_microorganisms()
 
     total_microorganisms = microorganisms_index;
 }
+
+const ImmuneCell* get_immunecell_by_index(int index)
+{
+    if (index < 0 || index >= defenders_count)
+    {
+        return NULL;
+    }
+
+    return &defenders[index];
+}
+
+int get_immunecell_count() { return defenders_count; }

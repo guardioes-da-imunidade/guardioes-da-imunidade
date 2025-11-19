@@ -5,6 +5,26 @@ static ALLEGRO_BITMAP* background = NULL;
 static int current_creature_index = 0;
 static int* microorganisms_indexes_memo = NULL;
 
+static void on_buy_defender(void* context)
+{
+    ImmuneCell* cell = (ImmuneCell*)context;
+
+    int id = cell->defender_id;
+
+    printf("id %d", id);
+
+    if (PLAYER_ENTITY->defenders[id].unlocked)
+    {
+        return;
+    }
+
+    if (PLAYER_ENTITY->vaccines >= cell->cost_to_place)
+    {
+        PLAYER_ENTITY->vaccines -= cell->cost_to_place;
+        PLAYER_ENTITY->defenders[id].unlocked = true;
+    }
+}
+
 static void draw_stat_bar(const char* label, float value, float max_value, float x, float y,
                           float bar_width, float bar_height, ALLEGRO_COLOR color)
 {
@@ -102,10 +122,18 @@ static void draw(int screen_width, int screen_height)
 
         Entity* entity;
         ALLEGRO_COLOR* fill_color;
+
+        bool locked = false;
+
         if (microorganisms[i].is_defender)
         {
-            entity = &((ImmuneCell*)microorganisms[i].entity)->base;
-            fill_color = &COLOR_DEFENDER_BUTTON;
+            ImmuneCell* def = (ImmuneCell*)microorganisms[i].entity;
+            int id = def->defender_id;
+
+            locked = !PLAYER_ENTITY->defenders[id].unlocked;
+
+            fill_color = locked ? &COLOR_GRAY : &COLOR_DEFENDER_BUTTON;
+            entity = &def->base;
         }
         else
         {
@@ -182,9 +210,32 @@ static void draw(int screen_width, int screen_height)
         if (current->is_defender)
         {
             ImmuneCell* d = (ImmuneCell*)current->entity;
+            bool unlocked = PLAYER_ENTITY->defenders[d->defender_id].unlocked;
 
             draw_stat_bar("Custo", d->cost_to_place, 50, stats_x, stats_y + 250, bar_width,
                           bar_height, al_map_rgb(0, 200, 200));
+
+            if (!unlocked)
+            {
+                Button buy_button = {
+                    .x = stats_x - 50,
+                    .y = stats_y + 300,
+                    .width = 200,
+                    .height = 60,
+                    .fill_color = &COLOR_GREEN,
+                    .text = {.content = "Comprar", .color = &COLOR_BLACK, .font = fonts[FONT_H2]},
+                    .border = {.border_color = &COLOR_BLACK, .thickness = 2},
+                    .on_click = on_buy_defender,
+                    .context = d,
+                };
+
+                draw_button(&buy_button);
+            }
+            else
+            {
+                al_draw_text(fonts[FONT_H2], COLOR_GREEN, stats_x - 50, stats_y + 310,
+                             ALLEGRO_ALIGN_LEFT, "Desbloqueado!");
+            }
         }
     }
 }

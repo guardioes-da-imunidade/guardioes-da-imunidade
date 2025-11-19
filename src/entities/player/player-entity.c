@@ -1,9 +1,5 @@
 #include "player-entity.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 void init_player()
 {
     if (PLAYER_ENTITY == NULL)
@@ -26,16 +22,13 @@ void init_player()
         snprintf(PLAYER_ENTITY->defenders[i].name, 32, "Defensor %d", i);
     }
 
-    PLAYER_ENTITY->defenders[0].unlocked = true;
-    strcpy(PLAYER_ENTITY->defenders[0].name, "Celula Branca");
+    const ImmuneCell* first = get_immunecell_by_index(0);
+    if (first != NULL)
+    {
+        strncpy(PLAYER_ENTITY->defenders[0].name, first->base.name,
+                sizeof(PLAYER_ENTITY->defenders[0].name) - 1);
+        PLAYER_ENTITY->defenders[0].name[sizeof(PLAYER_ENTITY->defenders[0].name) - 1] = '\0';
 
-    PLAYER_ENTITY->defenders[1].unlocked = true;
-    strcpy(PLAYER_ENTITY->defenders[1].name, "Eosinofilo");
-
-    PLAYER_ENTITY->defenders[2].unlocked = true;
-    strcpy(PLAYER_ENTITY->defenders[2].name, "Basofilo");
-
-    PLAYER_ENTITY->in_use_slots[0] = 0;
-    PLAYER_ENTITY->in_use_slots[1] = 1;
-    PLAYER_ENTITY->in_use_slots[2] = 2;
+        PLAYER_ENTITY->defenders[0].unlocked = true;
+    }
 }

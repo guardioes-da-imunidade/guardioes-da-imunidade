@@ -9,9 +9,10 @@
 #include "../../core/typography.h"
 #include "../../core/ui/button.h"
 #include "../../entities/entities.h"
-#include "../screen.h"
+#include "../../entities/player/player-entity.h"
 #include "../base/menu.h"
 #include "../lobby_screen/lobby_screen.h"
+#include "../screen.h"
 
 extern Screen Bestiary;
 
