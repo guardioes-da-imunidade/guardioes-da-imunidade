@@ -119,7 +119,11 @@ static double last_time = 0.0;
 static void init_arrays(void)
 {
     for (int i = 0; i < MAX_DEFENDERS; i++) defenders[i].active = false;
-    for (int i = 0; i < MAX_ENEMIES; i++) enemies[i].base.active = false;
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        memset(&enemies[i], 0, sizeof(enemies[i]));
+        enemies[i].base.active = false;
+    }
     for (int i = 0; i < MAX_PROJECTILES; i++) projectiles[i].active = false;
     for (int i = 0; i < MAX_PARTICLES; i++) particles[i].life = 0.0f;
     for (int i = 0; i < MAX_ORBS; i++) orbs[i].active = false;
