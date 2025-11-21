@@ -14,6 +14,7 @@ typedef enum
 
 typedef struct
 {
+    int id;
     const char* name;
     const char* description;
     int health;
@@ -38,7 +39,6 @@ typedef struct
     Entity base;
     int cost_to_place;
     int cost_to_unlock;
-    int id;
 } Defender;
 
 typedef struct

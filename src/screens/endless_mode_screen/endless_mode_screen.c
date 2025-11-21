@@ -231,7 +231,7 @@ static void add_defender(int row, int col, int defender_id)
             defenders[i].base.row = row;
             defenders[i].base.col = col;
             defenders[i].base.speed = 0.0f;
-            defenders[i].id = defender_id;
+            defenders[i].base.id = defender_id;
 
             placement_cooldown = 1.0f;
             vitamins -= cost;
@@ -333,7 +333,8 @@ static void update_defenders(void)
 
                 if (enemy_in_row)
                 {
-                    shoot_projectile(defenders[i].base.row, defenders[i].base.col, defenders[i].id);
+                    shoot_projectile(defenders[i].base.row, defenders[i].base.col,
+                                     defenders[i].base.id);
                 }
 
                 defenders[i].base.speed = 0.0f;
@@ -508,7 +509,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                     mouse_y <= SELECTOR_HEIGHT - 10)
                 {
                     if (vitamins >= defender->cost_to_place)
-                        selected_defender = defender->id;
+                        selected_defender = defender->base.id;
                     else
                         selected_defender = -1;
                     break;
@@ -623,8 +624,8 @@ static void draw(int screen_width, int screen_height)
 
             if (vitamins >= defender->cost_to_place)
             {
-                color = (selected_defender == defender->id) ? al_map_rgba(0, 255, 0, 180)
-                                                            : al_map_rgba(80, 80, 80, 150);
+                color = (selected_defender == defender->base.id) ? al_map_rgba(0, 255, 0, 180)
+                                                                 : al_map_rgba(80, 80, 80, 150);
                 border_color = al_map_rgb(255, 255, 255);
                 text_color = al_map_rgb(255, 215, 0);
             }
@@ -675,7 +676,7 @@ static void draw(int screen_width, int screen_height)
         {
             if (defenders[i].base.active)
             {
-                const Defender* defender = get_equipped_defender(defenders[i].id);
+                const Defender* defender = get_equipped_defender(defenders[i].base.id);
 
                 if (!defender)
                     continue;

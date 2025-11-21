@@ -154,7 +154,7 @@ void load_entities()
 
     for (i = 0; i < defenders_count; i++)
     {
-        defenders[i].id = i;
+        defenders[i].base.id = i;
         microorganisms[microorganisms_index].is_defender = true;
         microorganisms[microorganisms_index].entity = &defenders[i].base;
 
@@ -173,6 +173,7 @@ void load_entities()
 
     for (i = 0; i < enemies_count; i++)
     {
+        defenders[i].base.id = i;
         microorganisms[microorganisms_index].is_defender = false;
         microorganisms[microorganisms_index].entity = &enemies[i].base;
 

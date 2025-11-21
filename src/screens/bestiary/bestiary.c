@@ -111,7 +111,7 @@ static void draw(int screen_width, int screen_height)
         if (microorganisms[i].is_defender)
         {
             Defender* def = (Defender*)microorganisms[i].entity;
-            int id = def->id;
+            int id = def->base.id;
 
             if (locked)
                 fill_color = &COLOR_GRAY;
@@ -197,8 +197,8 @@ static void draw(int screen_width, int screen_height)
         if (current->is_defender)
         {
             Defender* d = (Defender*)current->entity;
-            bool unlocked = PLAYER_ENTITY->defenders[d->id];
-            bool equipped = is_defender_equipped(d->id);
+            bool unlocked = PLAYER_ENTITY->defenders[d->base.id];
+            bool equipped = is_defender_equipped(d->base.id);
 
             char cost_to_unlock[16];
             sprintf(cost_to_unlock, "Custo: %d", d->cost_to_place);

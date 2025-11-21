@@ -62,7 +62,7 @@ const Defender* get_equipped_defender(int id)
 
 void unlock_defender(Defender* defender)
 {
-    int id = defender->id;
+    int id = defender->base.id;
 
     if (is_defender_unlocked(id))
         return;
@@ -76,7 +76,7 @@ void unlock_defender(Defender* defender)
 
 void equip_defender(Defender* defender)
 {
-    int id = defender->id;
+    int id = defender->base.id;
 
     if (!is_defender_unlocked(id) || is_defender_equipped(id))
         return;
@@ -94,7 +94,7 @@ void equip_defender(Defender* defender)
 
 void unequip_defender(Defender* defender)
 {
-    int id = defender->id;
+    int id = defender->base.id;
 
     if (!is_defender_equipped(id))
         return;
