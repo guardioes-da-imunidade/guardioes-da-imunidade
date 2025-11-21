@@ -109,3 +109,10 @@ void unequip_defender(ImmuneCell* defender)
         }
     }
 }
+
+void print_slots()
+{
+    printf("[SLOTS] ");
+    for (int i = 0; i < MAX_IN_USE_SLOTS; i++) printf("%d ", PLAYER_ENTITY->in_use_slots[i]);
+    printf("\n");
+}

@@ -36,4 +36,6 @@ void unlock_defender(ImmuneCell* defender);
 void equip_defender(ImmuneCell* defender);
 void unequip_defender(ImmuneCell* defender);
 
+void print_slots();
+
 #endif

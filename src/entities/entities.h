@@ -24,7 +24,6 @@ typedef struct
     bool active;
     int row;
     int col;
-    int slot;
     float x;
     float y;
     ProjectileType projectile_type;

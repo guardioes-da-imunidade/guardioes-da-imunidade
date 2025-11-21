@@ -230,8 +230,9 @@ static void add_defender(int row, int col, int defender_id)
             defenders[i].base.active = true;
             defenders[i].base.row = row;
             defenders[i].base.col = col;
-            defenders[i].base.slot = defender_id;
             defenders[i].base.speed = 0.0f;
+            defenders[i].defender_id = defender_id;
+
             placement_cooldown = 1.0f;
             vitamins -= cost;
             selected_defender = -1;
@@ -240,14 +241,13 @@ static void add_defender(int row, int col, int defender_id)
     }
 }
 
-static void shoot_projectile(int row, int col, int defender_slot)
+static void shoot_projectile(int row, int col, int defender_id)
 {
     for (int i = 0; i < MAX_PROJECTILES; i++)
     {
         if (!projectiles[i].active)
         {
-            const ImmuneCell* defender =
-                get_equipped_defender(PLAYER_ENTITY->in_use_slots[defender_slot]);
+            const ImmuneCell* defender = get_equipped_defender(defender_id);
 
             projectiles[i].active = true;
             projectiles[i].row = row;
@@ -257,12 +257,12 @@ static void shoot_projectile(int row, int col, int defender_slot)
             projectiles[i].damage = defender->base.attack;
 
             // TODO: Armazenar o tipo de projétil diretamente na definição do defensor na struct
-            if (defender_slot == 0)
+            if (defender_id == 0)
             {
                 projectiles[i].type = PROJECTILE_WHITE_BALL;
                 projectiles[i].speed = 180.0f;
             }
-            else if (defender_slot == 1)
+            else if (defender_id == 1)
             {
                 projectiles[i].type = PROJECTILE_BLUE_MAGIC;
                 projectiles[i].speed = 240.0f;
@@ -334,7 +334,7 @@ static void update_defenders(void)
                 if (enemy_in_row)
                 {
                     shoot_projectile(defenders[i].base.row, defenders[i].base.col,
-                                     defenders[i].base.slot);
+                                     defenders[i].defender_id);
                 }
 
                 defenders[i].base.speed = 0.0f;
@@ -676,11 +676,11 @@ static void draw(int screen_width, int screen_height)
         {
             if (defenders[i].base.active)
             {
-                int slot = defenders[i].base.slot;
+                int defender_id = defenders[i].defender_id;
 
-                const ImmuneCell* defender = get_immunecell_by_index(slot);
+                const ImmuneCell* defender = get_immunecell_by_index(defender_id);
 
-                if (slot >= 0 && defender)
+                if (defender_id >= 0 && defender)
                 {
                     float x = defenders[i].base.col * (cell_width + 1.0f);
                     float y = GRID_START_Y + defenders[i].base.row * cell_height;

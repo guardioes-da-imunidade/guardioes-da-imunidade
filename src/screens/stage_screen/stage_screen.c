@@ -79,7 +79,7 @@ static ImmuneCell defenders[MAX_DEFENDERS];
 static Pathogen enemies[MAX_ENEMIES];
 static Projectile projectiles[MAX_PROJECTILES];
 
-static int selected_defender_slot = -1;
+static int selected_defender = -1;
 
 static float placement_cooldown = 0.0f;
 static float delta_time = 1.0f / 60.0f;
@@ -211,9 +211,9 @@ static void spawn_wave_enemy(int screen_width)
     }
 }
 
-static void add_defender(int row, int col, int defender_slot)
+static void add_defender(int row, int col, int defender_id)
 {
-    const ImmuneCell* defender = get_equipped_defender(defender_slot);
+    const ImmuneCell* defender = get_equipped_defender(defender_id);
 
     if (!defender || placement_cooldown > 0.0f)
         return;
@@ -237,24 +237,24 @@ static void add_defender(int row, int col, int defender_slot)
             defenders[i].base.active = true;
             defenders[i].base.row = row;
             defenders[i].base.col = col;
-            defenders[i].base.slot = defender_slot;
             defenders[i].base.speed = 0.0f;
+            defenders[i].defender_id = defender_id;
+
             placement_cooldown = 1.0f;
             vitamins -= cost;
-            selected_defender_slot = -1;
+            selected_defender = -1;
             break;
         }
     }
 }
 
-static void shoot_projectile(int row, int col, int defender_slot)
+static void shoot_projectile(int row, int col, int defender_id)
 {
     for (int i = 0; i < MAX_PROJECTILES; i++)
     {
         if (!projectiles[i].active)
         {
-            const ImmuneCell* defender =
-                get_equipped_defender(PLAYER_ENTITY->in_use_slots[defender_slot]);
+            const ImmuneCell* defender = get_equipped_defender(defender_id);
 
             projectiles[i].active = true;
             projectiles[i].row = row;
@@ -264,12 +264,12 @@ static void shoot_projectile(int row, int col, int defender_slot)
             projectiles[i].damage = defender->base.attack;
 
             // TODO: Armazenar o tipo de projétil diretamente na definição do defensor na struct
-            if (defender_slot == 0)
+            if (defender_id == 0)
             {
                 projectiles[i].type = PROJECTILE_WHITE_BALL;
                 projectiles[i].speed = 180.0f;
             }
-            else if (defender_slot == 1)
+            else if (defender_id == 1)
             {
                 projectiles[i].type = PROJECTILE_BLUE_MAGIC;
                 projectiles[i].speed = 240.0f;
@@ -325,9 +325,10 @@ static void update_defenders(void)
         {
             defenders[i].base.speed += delta_time;
 
-            int slot = defenders[i].base.slot;
-            const ImmuneCell* defender = get_immunecell_by_index(slot);
-            float cooldown = (slot >= 0 && slot < 3) ? defender->base.attack_cooldown : 3.0f;
+            int defender_id = defenders[i].defender_id;
+            const ImmuneCell* defender = get_immunecell_by_index(defender_id);
+            float cooldown =
+                (defender_id >= 0 && defender_id < 3) ? defender->base.attack_cooldown : 3.0f;
 
             if (defenders[i].base.speed >= cooldown)
             {
@@ -344,8 +345,7 @@ static void update_defenders(void)
 
                 if (enemy_in_row)
                 {
-                    shoot_projectile(defenders[i].base.row, defenders[i].base.col,
-                                     defenders[i].base.slot);
+                    shoot_projectile(defenders[i].base.row, defenders[i].base.col, defender_id);
                 }
 
                 defenders[i].base.speed = 0.0f;
@@ -559,9 +559,9 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                     mouse_y <= SELECTOR_HEIGHT - 10)
                 {
                     if (vitamins >= defender->cost_to_place)
-                        selected_defender_slot = defender->defender_id;
+                        selected_defender = defender->defender_id;
                     else
-                        selected_defender_slot = -1;
+                        selected_defender = -1;
                     break;
                 }
             }
@@ -575,8 +575,8 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
             if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS)
             {
-                if (selected_defender_slot != -1)
-                    add_defender(row, col, selected_defender_slot);
+                if (selected_defender != -1)
+                    add_defender(row, col, selected_defender);
             }
         }
     }
@@ -690,8 +690,8 @@ static void draw(int screen_width, int screen_height)
 
             if (vitamins >= defender->cost_to_place)
             {
-                color = (selected_defender_slot == defender_id) ? al_map_rgba(0, 255, 0, 180)
-                                                                : al_map_rgba(80, 80, 80, 150);
+                color = (selected_defender == defender_id) ? al_map_rgba(0, 255, 0, 180)
+                                                           : al_map_rgba(80, 80, 80, 150);
                 border_color = al_map_rgb(255, 255, 255);
                 text_color = al_map_rgb(255, 215, 0);
             }
@@ -745,11 +745,11 @@ static void draw(int screen_width, int screen_height)
         {
             if (defenders[i].base.active)
             {
-                int slot = defenders[i].base.slot;
+                int defender_id = defenders[i].defender_id;
 
-                const ImmuneCell* defender = get_immunecell_by_index(slot);
+                const ImmuneCell* defender = get_immunecell_by_index(defender_id);
 
-                if (slot >= 0 && defender)
+                if (defender_id >= 0 && defender)
                 {
                     float x = defenders[i].base.col * (cell_width + 1.0f);
                     float y = GRID_START_Y + defenders[i].base.row * cell_height;
