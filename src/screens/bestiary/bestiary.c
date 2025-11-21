@@ -45,7 +45,7 @@ static void on_microorganism_change(void* context)
 
 static void init(ALLEGRO_DISPLAY* display)
 {
-    background = al_load_bitmap("assets/images/menu/background_bestiary.png");
+    background = al_load_bitmap("assets/images/menu/background_bestiary.jpg");
 
     microorganisms_indexes_memo = malloc(sizeof(int) * total_microorganisms);
     if (!microorganisms_indexes_memo)
@@ -72,13 +72,10 @@ static void draw(int screen_width, int screen_height)
     }
 
     Button back_button = {
-        .x = 70,
-        .y = screen_height - 300,
-        .width = 160,
-        .height = 75,
-        .fill_color = &COLOR_YELLOW,
-        .text = {.content = "Voltar", .color = &COLOR_BLACK, .font = fonts[FONT_H3]},
-        .border = {.border_color = &COLOR_BLACK, .thickness = 2},
+        .x = 82,
+        .y = screen_height - 330,
+        .width = 140,
+        .height = 62,
         .on_click = on_back_screen,
         .context = NULL,
     };
@@ -87,7 +84,8 @@ static void draw(int screen_width, int screen_height)
 
     float divider_x = screen_width / 2;
 
-    float padding = 200;
+    float padding_x = 300;
+    float padding_y = 175;
     float button_spacing_x = 15;
     float button_spacing_y = 15;
     float button_width = 150;
@@ -100,8 +98,8 @@ static void draw(int screen_width, int screen_height)
 
         int row = i / buttons_per_row;
         int col = i % buttons_per_row;
-        float button_x = padding + col * (button_width + button_spacing_x);
-        float button_y = padding + row * (button_height + button_spacing_y);
+        float button_x = padding_x + col * (button_width + button_spacing_x);
+        float button_y = padding_y + row * (button_height + button_spacing_y);
 
         Entity* entity;
         ALLEGRO_COLOR* fill_color;
@@ -164,13 +162,13 @@ static void draw(int screen_width, int screen_height)
                                   image_width, image_height, 0);
         }
 
-        al_draw_text(fonts[FONT_H1], COLOR_YELLOW, image_x - 100, image_y + image_height + 40,
+        al_draw_text(fonts[FONT_H1], COLOR_YELLOW, image_x - 100, image_y + image_height + 10,
                      ALLEGRO_ALIGN_LEFT, entity->name);
 
         if (entity->description)
         {
             al_draw_multiline_text(fonts[FONT_H6], COLOR_WHITE, image_x - 100,
-                                   image_y + image_height + 100, 400, 24, ALLEGRO_ALIGN_LEFT,
+                                   image_y + image_height + 60, 400, 24, ALLEGRO_ALIGN_LEFT,
                                    entity->description);
         }
 

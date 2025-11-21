@@ -9,8 +9,11 @@ void draw_button(Button* button)
     float button_right = button->x + button->width;
     float button_bottom = button->y + button->height;
 
-    al_draw_filled_rectangle(button->x, button->y, button_right, button_bottom,
-                             *button->fill_color);
+    if (button->fill_color)
+    {
+        al_draw_filled_rectangle(button->x, button->y, button_right, button_bottom,
+                                 *button->fill_color);
+    }
 
     if (button->border.border_color)
     {
@@ -19,10 +22,13 @@ void draw_button(Button* button)
                           *button->border.border_color, thickness);
     }
 
-    float text_x = button->x + button->width / 2;
-    float text_y = button->y + button->height / 2 - 10;
-    al_draw_text(button->text.font, *button->text.color, text_x, text_y, ALLEGRO_ALIGN_CENTER,
-                 button->text.content);
+    if (button->text.content)
+    {
+        float text_x = button->x + button->width / 2;
+        float text_y = button->y + button->height / 2 - 10;
+        al_draw_text(button->text.font, *button->text.color, text_x, text_y, ALLEGRO_ALIGN_CENTER,
+                     button->text.content);
+    }
 
     bool is_inside_x = mouse_x >= button->x && mouse_x <= button_right;
     bool is_inside_y = mouse_y >= button->y && mouse_y <= button_bottom;
