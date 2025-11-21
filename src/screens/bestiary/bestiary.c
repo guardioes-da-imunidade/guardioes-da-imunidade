@@ -130,13 +130,13 @@ static void draw(int screen_width, int screen_height)
 
             locked = !PLAYER_ENTITY->defenders[id].unlocked;
 
-            fill_color = locked ? &COLOR_GRAY : &COLOR_DEFENDER_BUTTON;
+            fill_color = locked ? &COLOR_GRAY : &COLOR_BLUE;
             entity = &def->base;
         }
         else
         {
             entity = &((Pathogen*)microorganisms[i].entity)->base;
-            fill_color = &COLOR_ENEMY_BUTTON;
+            fill_color = &COLOR_RED;
         }
 
         Button button = {
