@@ -23,7 +23,7 @@ SRC = main.c \
     src/systems/resource.c \
 	\
 	src/entities/entities.c \
-	src/entities/player/player-entity.c
+	src/entities/player/player.c
 
 CC = gcc
 

@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include "../../core/game.h"
-#include "../../entities/player/player-entity.h"
+#include "../../entities/player/player.h"
 #include "../base/menu.h"
 #include "../lobby_screen/lobby_screen.h"
 

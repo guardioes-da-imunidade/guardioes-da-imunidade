@@ -10,7 +10,7 @@
 #include "../../core/ui/button.h"
 #include "../../core/ui/vaccines.h"
 #include "../../entities/entities.h"
-#include "../../entities/player/player-entity.h"
+#include "../../entities/player/player.h"
 #include "../base/menu.h"
 #include "../lobby_screen/lobby_screen.h"
 #include "../screen.h"

@@ -1,4 +1,4 @@
-#include "player-entity.h"
+#include "player.h"
 
 void init_player()
 {

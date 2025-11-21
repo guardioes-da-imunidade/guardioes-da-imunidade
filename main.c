@@ -11,7 +11,7 @@
 #include "src/core/input.h"
 #include "src/core/palette.h"
 #include "src/core/typography.h"
-#include "src/entities/player/player-entity.h"
+#include "src/entities/player/player.h"
 #include "src/screens/base/menu.h"
 
 Screen *current_screen = &MenuScreen;

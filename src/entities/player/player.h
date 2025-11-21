@@ -1,5 +1,5 @@
-#ifndef PLAYER_ENTITY_H
-#define PLAYER_ENTITY_H
+#ifndef PLAYER_H
+#define PLAYER_H
 
 #include <stdbool.h>
 

@@ -4,7 +4,7 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
 
-#include "../../entities/player/player-entity.h"
+#include "../../entities/player/player.h"
 #include "../palette.h"
 #include "../typography.h"
 
