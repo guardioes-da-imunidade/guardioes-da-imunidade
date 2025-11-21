@@ -86,7 +86,6 @@ static void draw(int screen_width, int screen_height)
     draw_button(&back_button);
 
     float divider_x = screen_width / 2;
-    al_draw_line(divider_x, 0, divider_x, screen_height, COLOR_BLACK, 2);
 
     float padding = 200;
     float button_spacing_x = 15;
@@ -201,8 +200,10 @@ static void draw(int screen_width, int screen_height)
             bool unlocked = PLAYER_ENTITY->defenders[d->defender_id];
             bool equipped = is_defender_equipped(d->defender_id);
 
-            draw_stat_bar("Custo", d->cost_to_unlock, 50, stats_x, stats_y + 250, bar_width,
-                          bar_height, al_map_rgb(0, 200, 200));
+            char cost_to_unlock[16];
+            sprintf(cost_to_unlock, "Custo: %d", d->cost_to_place);
+            al_draw_text(fonts[FONT_H5], COLOR_WHITE, stats_x, (stats_y + 250) - 22,
+                         ALLEGRO_ALIGN_LEFT, cost_to_unlock);
 
             char cost_text[16];
             sprintf(cost_text, "Comprar (%d)", d->cost_to_unlock);
@@ -210,12 +211,12 @@ static void draw(int screen_width, int screen_height)
             if (!unlocked)
             {
                 Button buy_button = {
-                    .x = stats_x - 50,
-                    .y = stats_y + 300,
+                    .x = divider_x,
+                    .y = stats_y,
                     .width = 200,
                     .height = 60,
                     .fill_color = &COLOR_GREEN,
-                    .text = {.content = cost_text, .color = &COLOR_BLACK, .font = fonts[FONT_H2]},
+                    .text = {.content = cost_text, .color = &COLOR_BLACK, .font = fonts[FONT_H4]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_buy_defender,
                     .context = d,
@@ -226,12 +227,12 @@ static void draw(int screen_width, int screen_height)
             else if (!equipped)
             {
                 Button equip_button = {
-                    .x = stats_x - 50,
-                    .y = stats_y + 300,
+                    .x = divider_x,
+                    .y = stats_y,
                     .width = 200,
                     .height = 60,
                     .fill_color = &COLOR_BLUE,
-                    .text = {.content = "Equipar", .color = &COLOR_WHITE, .font = fonts[FONT_H2]},
+                    .text = {.content = "Equipar", .color = &COLOR_WHITE, .font = fonts[FONT_H4]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_equip_defender,
                     .context = d,
@@ -242,14 +243,14 @@ static void draw(int screen_width, int screen_height)
             else if (get_player_equipped_inventory_size() > 1)
             {
                 Button unequip_button = {
-                    .x = stats_x - 50,
-                    .y = stats_y + 300,
+                    .x = divider_x,
+                    .y = stats_y,
                     .width = 200,
                     .height = 60,
                     .fill_color = &COLOR_RED,
                     .text = {.content = "Desequipar",
                              .color = &COLOR_WHITE,
-                             .font = fonts[FONT_H2]},
+                             .font = fonts[FONT_H4]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_unequip_defender,
                     .context = d,
