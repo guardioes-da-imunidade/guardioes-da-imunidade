@@ -19,7 +19,7 @@ typedef struct
     int vaccines;
     int current_stage;
     int in_use_slots[MAX_IN_USE_SLOTS];
-    ImmuneCell* defenders[];
+    Defender* defenders[];
 } PlayerEntity;
 
 extern PlayerEntity* PLAYER_ENTITY;
@@ -30,11 +30,11 @@ int get_player_equipped_inventory_size();
 
 bool is_defender_unlocked(int id);
 bool is_defender_equipped(int id);
-const ImmuneCell* get_equipped_defender(int id);
+const Defender* get_equipped_defender(int id);
 
-void unlock_defender(ImmuneCell* defender);
-void equip_defender(ImmuneCell* defender);
-void unequip_defender(ImmuneCell* defender);
+void unlock_defender(Defender* defender);
+void equip_defender(Defender* defender);
+void unequip_defender(Defender* defender);
 
 void print_slots();
 

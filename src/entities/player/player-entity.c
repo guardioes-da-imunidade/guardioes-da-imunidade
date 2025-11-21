@@ -4,7 +4,7 @@ void init_player()
 {
     int count = get_immunecell_count();
 
-    PLAYER_ENTITY = malloc(sizeof(PlayerEntity) + sizeof(ImmuneCell*) * count);
+    PLAYER_ENTITY = malloc(sizeof(PlayerEntity) + sizeof(Defender*) * count);
 
     if (PLAYER_ENTITY == NULL)
     {
@@ -19,10 +19,10 @@ void init_player()
 
     for (int i = 0; i < count; i++) PLAYER_ENTITY->defenders[i] = NULL;
 
-    const ImmuneCell* first = get_immunecell_by_index(0);
+    const Defender* first = get_defender_by_id(0);
     if (first != NULL)
     {
-        PLAYER_ENTITY->defenders[0] = (ImmuneCell*)first;
+        PLAYER_ENTITY->defenders[0] = (Defender*)first;
         PLAYER_ENTITY->in_use_slots[0] = 0;
     }
 }
@@ -51,18 +51,18 @@ bool is_defender_equipped(int id)
 
 // TODO: Da para melhorar porque em vários lugares acima do uso desse método eu tenho o mesmo for
 // repetido
-const ImmuneCell* get_equipped_defender(int id)
+const Defender* get_equipped_defender(int id)
 {
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
         if (PLAYER_ENTITY->in_use_slots[i] == id)
-            return get_immunecell_by_index(id);
+            return get_defender_by_id(id);
 
     return NULL;
 }
 
-void unlock_defender(ImmuneCell* defender)
+void unlock_defender(Defender* defender)
 {
-    int id = defender->defender_id;
+    int id = defender->id;
 
     if (is_defender_unlocked(id))
         return;
@@ -74,9 +74,9 @@ void unlock_defender(ImmuneCell* defender)
     }
 }
 
-void equip_defender(ImmuneCell* defender)
+void equip_defender(Defender* defender)
 {
-    int id = defender->defender_id;
+    int id = defender->id;
 
     if (!is_defender_unlocked(id) || is_defender_equipped(id))
         return;
@@ -92,9 +92,9 @@ void equip_defender(ImmuneCell* defender)
     }
 }
 
-void unequip_defender(ImmuneCell* defender)
+void unequip_defender(Defender* defender)
 {
-    int id = defender->defender_id;
+    int id = defender->id;
 
     if (!is_defender_equipped(id))
         return;

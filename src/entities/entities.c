@@ -5,7 +5,7 @@
 Microorganism microorganisms[10];
 int total_microorganisms = 0;
 
-static ImmuneCell defenders[] = {
+static Defender defenders[] = {
     {
         .base =
             {
@@ -77,7 +77,7 @@ static ImmuneCell defenders[] = {
     },
 };
 
-static Pathogen enemies[] = {
+static Enemy enemies[] = {
     {
         .base =
             {
@@ -145,16 +145,16 @@ static Pathogen enemies[] = {
     },
 };
 
-static int defenders_count = sizeof(defenders) / sizeof(ImmuneCell);
-static int enemies_count = sizeof(enemies) / sizeof(Pathogen);
+static int defenders_count = sizeof(defenders) / sizeof(Defender);
+static int enemies_count = sizeof(enemies) / sizeof(Enemy);
 
-void load_microorganisms()
+void load_entities()
 {
     int i, microorganisms_index = 0;
 
     for (i = 0; i < defenders_count; i++)
     {
-        defenders[i].defender_id = i;
+        defenders[i].id = i;
         microorganisms[microorganisms_index].is_defender = true;
         microorganisms[microorganisms_index].entity = &defenders[i].base;
 
@@ -192,7 +192,7 @@ void load_microorganisms()
     total_microorganisms = microorganisms_index;
 }
 
-const ImmuneCell* get_immunecell_by_index(int index)
+const Defender* get_defender_by_id(int index)
 {
     if (index < 0 || index >= defenders_count)
     {

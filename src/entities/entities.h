@@ -38,15 +38,15 @@ typedef struct
     Entity base;
     int cost_to_place;
     int cost_to_unlock;
-    int defender_id;
-} ImmuneCell;
+    int id;
+} Defender;
 
 typedef struct
 {
     Entity base;
     bool is_boss;
     int type;
-} Pathogen;
+} Enemy;
 
 typedef struct
 {
@@ -57,9 +57,9 @@ typedef struct
 extern Microorganism microorganisms[];
 extern int total_microorganisms;
 
-void load_microorganisms();
+void load_entities();
 
-const ImmuneCell* get_immunecell_by_index(int index);
+const Defender* get_defender_by_id(int index);
 
 int get_immunecell_count();
 

@@ -5,11 +5,11 @@ static ALLEGRO_BITMAP* background = NULL;
 static int current_creature_index = 0;
 static int* microorganisms_indexes_memo = NULL;
 
-static void on_equip_defender(void* context) { equip_defender((ImmuneCell*)context); }
+static void on_equip_defender(void* context) { equip_defender((Defender*)context); }
 
-static void on_unequip_defender(void* context) { unequip_defender((ImmuneCell*)context); }
+static void on_unequip_defender(void* context) { unequip_defender((Defender*)context); }
 
-static void on_buy_defender(void* context) { unlock_defender((ImmuneCell*)context); }
+static void on_buy_defender(void* context) { unlock_defender((Defender*)context); }
 
 static void draw_stat_bar(const char* label, float value, float max_value, float x, float y,
                           float bar_width, float bar_height, ALLEGRO_COLOR color)
@@ -110,8 +110,8 @@ static void draw(int screen_width, int screen_height)
 
         if (microorganisms[i].is_defender)
         {
-            ImmuneCell* def = (ImmuneCell*)microorganisms[i].entity;
-            int id = def->defender_id;
+            Defender* def = (Defender*)microorganisms[i].entity;
+            int id = def->id;
 
             if (locked)
                 fill_color = &COLOR_GRAY;
@@ -124,7 +124,7 @@ static void draw(int screen_width, int screen_height)
         }
         else
         {
-            entity = &((Pathogen*)microorganisms[i].entity)->base;
+            entity = &((Enemy*)microorganisms[i].entity)->base;
             fill_color = &COLOR_RED;
         }
 
@@ -196,9 +196,9 @@ static void draw(int screen_width, int screen_height)
 
         if (current->is_defender)
         {
-            ImmuneCell* d = (ImmuneCell*)current->entity;
-            bool unlocked = PLAYER_ENTITY->defenders[d->defender_id];
-            bool equipped = is_defender_equipped(d->defender_id);
+            Defender* d = (Defender*)current->entity;
+            bool unlocked = PLAYER_ENTITY->defenders[d->id];
+            bool equipped = is_defender_equipped(d->id);
 
             char cost_to_unlock[16];
             sprintf(cost_to_unlock, "Custo: %d", d->cost_to_place);
