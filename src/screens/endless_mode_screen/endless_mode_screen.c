@@ -69,6 +69,7 @@ typedef struct
     bool active;
     ProjectileType type;
     float animation_time;
+    int damage;
 } Projectile;
 
 static Particle particles[MAX_PARTICLES];
@@ -205,11 +206,13 @@ static void spawn_enemy(int screen_width)
 
 static void add_defender(int row, int col, int defender_id)
 {
-    if (placement_cooldown > 0.0f)
+    const ImmuneCell* defender = get_equipped_defender(defender_id);
+
+    if (!defender || placement_cooldown > 0.0f)
         return;
 
-    const ImmuneCell* defender = get_immunecell_by_index(defender_id);
     int cost = defender->cost_to_place;
+
     if (vitamins < cost)
         return;
 
@@ -227,8 +230,8 @@ static void add_defender(int row, int col, int defender_id)
             defenders[i].base.active = true;
             defenders[i].base.row = row;
             defenders[i].base.col = col;
-            defenders[i].defender_id = defender_id;
-            defenders[i].base.attack_cooldown = 0.0f;
+            defenders[i].base.slot = defender_id;
+            defenders[i].base.speed = 0.0f;
             placement_cooldown = 1.0f;
             vitamins -= cost;
             selected_defender = -1;
@@ -237,25 +240,29 @@ static void add_defender(int row, int col, int defender_id)
     }
 }
 
-static void shoot_projectile(int row, int col, int defender_id)
+static void shoot_projectile(int row, int col, int defender_slot)
 {
     for (int i = 0; i < MAX_PROJECTILES; i++)
     {
         if (!projectiles[i].active)
         {
+            const ImmuneCell* defender =
+                get_equipped_defender(PLAYER_ENTITY->in_use_slots[defender_slot]);
+
             projectiles[i].active = true;
             projectiles[i].row = row;
             projectiles[i].x = col * (cell_width + 1.0f) + cell_width;
             projectiles[i].y = GRID_START_Y + row * cell_height + cell_height / 2.0f;
             projectiles[i].animation_time = 0.0f;
+            projectiles[i].damage = defender->base.attack;
 
             // TODO: Armazenar o tipo de projétil diretamente na definição do defensor na struct
-            if (defender_id == 0)
+            if (defender_slot == 0)
             {
                 projectiles[i].type = PROJECTILE_WHITE_BALL;
                 projectiles[i].speed = 180.0f;
             }
-            else if (defender_id == 1)
+            else if (defender_slot == 1)
             {
                 projectiles[i].type = PROJECTILE_BLUE_MAGIC;
                 projectiles[i].speed = 240.0f;
@@ -309,9 +316,9 @@ static void update_defenders(void)
     {
         if (defenders[i].base.active)
         {
-            defenders[i].base.attack_cooldown += delta_time;
+            defenders[i].base.speed += delta_time;
 
-            if (defenders[i].base.attack_cooldown >= 3.0f)
+            if (defenders[i].base.speed >= 3.0f)
             {
                 bool enemy_in_row = false;
 
@@ -327,10 +334,10 @@ static void update_defenders(void)
                 if (enemy_in_row)
                 {
                     shoot_projectile(defenders[i].base.row, defenders[i].base.col,
-                                     defenders[i].defender_id);
+                                     defenders[i].base.slot);
                 }
 
-                defenders[i].base.attack_cooldown = 0.0f;
+                defenders[i].base.speed = 0.0f;
             }
         }
     }
@@ -489,17 +496,20 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             int selector_width = 100;
             int start_x = 10;
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
+                const ImmuneCell* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
+
+                if (!defender)
+                    continue;
+
                 int x1 = start_x + i * (selector_width + 10);
                 int x2 = x1 + selector_width;
                 if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 &&
                     mouse_y <= SELECTOR_HEIGHT - 10)
                 {
-                    const ImmuneCell* defender = get_immunecell_by_index(i);
-
                     if (vitamins >= defender->cost_to_place)
-                        selected_defender = i;
+                        selected_defender = defender->defender_id;
                     else
                         selected_defender = -1;
                     break;
@@ -599,20 +609,23 @@ static void draw(int screen_width, int screen_height)
         int selector_width = 100;
         int start_x = 10;
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
         {
+            const ImmuneCell* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
+
+            if (!defender)
+                continue;
+
             int x1 = start_x + i * (selector_width + 10);
             int x2 = x1 + selector_width;
             ALLEGRO_COLOR color;
             ALLEGRO_COLOR border_color;
             ALLEGRO_COLOR text_color;
 
-            const ImmuneCell* defender = get_immunecell_by_index(i);
-
             if (vitamins >= defender->cost_to_place)
             {
-                color = (selected_defender == i) ? al_map_rgba(0, 255, 0, 180)
-                                                 : al_map_rgba(80, 80, 80, 150);
+                color = (selected_defender == defender->defender_id) ? al_map_rgba(0, 255, 0, 180)
+                                                                     : al_map_rgba(80, 80, 80, 150);
                 border_color = al_map_rgb(255, 255, 255);
                 text_color = al_map_rgb(255, 215, 0);
             }
@@ -633,7 +646,7 @@ static void draw(int screen_width, int screen_height)
             }
 
             char cost_text[16];
-            sprintf(cost_text, "C:%2.f", defender->cost_to_place);
+            sprintf(cost_text, "C:%d", defender->cost_to_place);
             if (font)
                 al_draw_text(font, text_color, x1 + 50, 50, ALLEGRO_ALIGN_CENTER, cost_text);
         }
@@ -659,32 +672,29 @@ static void draw(int screen_width, int screen_height)
             al_draw_text(font, al_map_rgb(255, 215, 0), screen_width - 80, 78, ALLEGRO_ALIGN_CENTER,
                          vitamins_text);
 
-        for (int row = 0; row < GRID_ROWS; row++)
-        {
-            for (int col = 0; col < GRID_COLS; col++)
-            {
-                float x = col * (cell_width + 1.0f);
-                float y = GRID_START_Y + row * cell_height;
-            }
-        }
-
         for (int i = 0; i < MAX_DEFENDERS; i++)
         {
-            const ImmuneCell* defender = get_immunecell_by_index(i);
-
-            if (defenders[i].base.active && defender->base.image)
+            if (defenders[i].base.active)
             {
-                float x = defenders[i].base.col * (cell_width + 1.0f);
-                float y = GRID_START_Y + defenders[i].base.row * cell_height;
-                float scale = (defender->base.image_width > 0)
-                                  ? (cell_width * 0.8f) / defender->base.image_width
-                                  : 1.0f;
-                float img_w = defender->base.image_width * scale;
-                float img_h = defender->base.image_height * scale;
+                int slot = defenders[i].base.slot;
 
-                al_draw_scaled_bitmap(defender->base.image, 0, 0, defender->base.image_width,
-                                      defender->base.image_height, x + (cell_width - img_w) / 2.0f,
-                                      y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
+                const ImmuneCell* defender = get_immunecell_by_index(slot);
+
+                if (slot >= 0 && defender)
+                {
+                    float x = defenders[i].base.col * (cell_width + 1.0f);
+                    float y = GRID_START_Y + defenders[i].base.row * cell_height;
+                    float scale = (defender->base.image_width > 0)
+                                      ? (cell_width * 0.8f) / defender->base.image_width
+                                      : 1.0f;
+                    float img_w = defender->base.image_width * scale;
+                    float img_h = defender->base.image_height * scale;
+
+                    al_draw_scaled_bitmap(
+                        defender->base.image, 0, 0, defender->base.image_width,
+                        defender->base.image_height, x + (cell_width - img_w) / 2.0f,
+                        y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
+                }
             }
         }
 

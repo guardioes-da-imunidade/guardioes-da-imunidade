@@ -80,8 +80,6 @@ static Pathogen enemies[MAX_ENEMIES];
 static Projectile projectiles[MAX_PROJECTILES];
 
 static int selected_defender_slot = -1;
-static int in_use_defenders[MAX_IN_USE_SLOTS];
-static int in_use_count = 0;
 
 static float placement_cooldown = 0.0f;
 static float delta_time = 1.0f / 60.0f;
@@ -117,20 +115,6 @@ static void init_arrays(void)
     for (int i = 0; i < MAX_PROJECTILES; i++) projectiles[i].active = false;
     for (int i = 0; i < MAX_PARTICLES; i++) particles[i].life = 0.0f;
     for (int i = 0; i < MAX_ORBS; i++) orbs[i].active = false;
-}
-
-static void load_in_use_defenders(void)
-{
-    in_use_count = 0;
-    for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
-    {
-        int defender_id = PLAYER_ENTITY->in_use_slots[i];
-        if (defender_id >= 0 && PLAYER_ENTITY->defenders[defender_id].unlocked)
-        {
-            in_use_defenders[in_use_count] = defender_id;
-            in_use_count++;
-        }
-    }
 }
 
 static void configure_stage(int stage_number)
@@ -229,10 +213,10 @@ static void spawn_wave_enemy(int screen_width)
 
 static void add_defender(int row, int col, int defender_slot)
 {
-    if (placement_cooldown > 0.0f)
-        return;
+    const ImmuneCell* defender = get_equipped_defender(defender_slot);
 
-    const ImmuneCell* defender = get_immunecell_by_index(defender_slot);
+    if (!defender || placement_cooldown > 0.0f)
+        return;
 
     int cost = defender->cost_to_place;
 
@@ -269,7 +253,8 @@ static void shoot_projectile(int row, int col, int defender_slot)
     {
         if (!projectiles[i].active)
         {
-            const ImmuneCell* defender = get_immunecell_by_index(defender_slot);
+            const ImmuneCell* defender =
+                get_equipped_defender(PLAYER_ENTITY->in_use_slots[defender_slot]);
 
             projectiles[i].active = true;
             projectiles[i].row = row;
@@ -278,6 +263,7 @@ static void shoot_projectile(int row, int col, int defender_slot)
             projectiles[i].animation_time = 0.0f;
             projectiles[i].damage = defender->base.attack;
 
+            // TODO: Armazenar o tipo de projétil diretamente na definição do defensor na struct
             if (defender_slot == 0)
             {
                 projectiles[i].type = PROJECTILE_WHITE_BALL;
@@ -467,7 +453,6 @@ static void init(ALLEGRO_DISPLAY* display)
     current_game_state = GAME_PLAYING;
     srand((unsigned int)time(NULL));
     init_arrays();
-    load_in_use_defenders();
 
     game_time = 0.0f;
     vitamins = 150;
@@ -559,9 +544,14 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             int selector_width = 100;
             int start_x = 10;
 
-            for (int i = 0; i < in_use_count; i++)
+            for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
-                const ImmuneCell* defender = get_immunecell_by_index(i);
+                int defender_id = PLAYER_ENTITY->in_use_slots[i];
+
+                if (defender_id == -1)
+                    continue;
+
+                const ImmuneCell* defender = get_immunecell_by_index(defender_id);
 
                 int x1 = start_x + i * (selector_width + 10);
                 int x2 = x1 + selector_width;
@@ -569,7 +559,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                     mouse_y <= SELECTOR_HEIGHT - 10)
                 {
                     if (vitamins >= defender->cost_to_place)
-                        selected_defender_slot = i;
+                        selected_defender_slot = defender->defender_id;
                     else
                         selected_defender_slot = -1;
                     break;
@@ -683,20 +673,25 @@ static void draw(int screen_width, int screen_height)
         int selector_width = 100;
         int start_x = 10;
 
-        for (int i = 0; i < in_use_count; i++)
+        for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
         {
+            int defender_id = PLAYER_ENTITY->in_use_slots[i];
+
+            if (defender_id == -1)
+                continue;
+
             int x1 = start_x + i * (selector_width + 10);
             int x2 = x1 + selector_width;
             ALLEGRO_COLOR color;
             ALLEGRO_COLOR border_color;
             ALLEGRO_COLOR text_color;
 
-            const ImmuneCell* defender = get_immunecell_by_index(i);
+            const ImmuneCell* defender = get_immunecell_by_index(defender_id);
 
             if (vitamins >= defender->cost_to_place)
             {
-                color = (selected_defender_slot == i) ? al_map_rgba(0, 255, 0, 180)
-                                                      : al_map_rgba(80, 80, 80, 150);
+                color = (selected_defender_slot == defender_id) ? al_map_rgba(0, 255, 0, 180)
+                                                                : al_map_rgba(80, 80, 80, 150);
                 border_color = al_map_rgb(255, 255, 255);
                 text_color = al_map_rgb(255, 215, 0);
             }
@@ -717,7 +712,7 @@ static void draw(int screen_width, int screen_height)
             }
 
             char cost_text[16];
-            sprintf(cost_text, "C:%2.f", defender->cost_to_place);
+            sprintf(cost_text, "C:%d", defender->cost_to_place);
             if (font)
                 al_draw_text(font, text_color, x1 + 50, 50, ALLEGRO_ALIGN_CENTER, cost_text);
         }
@@ -754,7 +749,7 @@ static void draw(int screen_width, int screen_height)
 
                 const ImmuneCell* defender = get_immunecell_by_index(slot);
 
-                if (slot >= 0 && slot < in_use_count && defender)
+                if (slot >= 0 && defender)
                 {
                     float x = defenders[i].base.col * (cell_width + 1.0f);
                     float y = GRID_START_Y + defenders[i].base.row * cell_height;
@@ -792,19 +787,58 @@ static void draw(int screen_width, int screen_height)
                 if (projectiles[i].type == PROJECTILE_WHITE_BALL)
                 {
                     float pulse = sin(anim * 10.0f) * 2.0f;
-                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 12.0f + pulse,
+                    float base_radius = 12.0f;
+
+                    for (int j = 0; j < 3; j++)
+                    {
+                        float bubble_offset = sin(anim * 8.0f + j * 2.0f) * 3.0f;
+                        al_draw_filled_circle(
+                            projectiles[i].x + bubble_offset, projectiles[i].y + bubble_offset,
+                            base_radius + pulse - j * 2, al_map_rgba(255, 255, 255, 150 - j * 30));
+                    }
+
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, base_radius + pulse,
                                           al_map_rgb(255, 255, 255));
+                    al_draw_circle(projectiles[i].x, projectiles[i].y, base_radius + pulse,
+                                   al_map_rgba(200, 220, 255, 180), 2.0f);
                 }
                 else if (projectiles[i].type == PROJECTILE_BLUE_MAGIC)
                 {
-                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 10.0f,
-                                          al_map_rgb(100, 200, 255));
+                    float spiral = anim * 15.0f;
+
+                    for (int j = 0; j < 5; j++)
+                    {
+                        float angle = spiral + j * 1.2f;
+                        float radius = 8.0f + sin(anim * 8.0f + j) * 3.0f;
+                        float offset_x = cos(angle) * radius;
+                        float offset_y = sin(angle) * radius;
+                        al_draw_filled_circle(projectiles[i].x + offset_x,
+                                              projectiles[i].y + offset_y, 5.0f - j * 0.5f,
+                                              al_map_rgba(0, 150 + j * 20, 255, 200 - j * 30));
+                    }
+                    float glow = sin(anim * 12.0f) * 3.0f;
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 8.0f + glow,
+                                          al_map_rgba(100, 200, 255, 150));
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 6.0f,
+                                          al_map_rgb(200, 230, 255));
                 }
                 else if (projectiles[i].type == PROJECTILE_RED_LASER)
                 {
-                    al_draw_filled_rectangle(projectiles[i].x - 25, projectiles[i].y - 4,
-                                             projectiles[i].x + 25, projectiles[i].y + 4,
+                    float intensity = sin(anim * 20.0f);
+                    float length = 20.0f + intensity * 5.0f;
+                    al_draw_filled_rectangle(projectiles[i].x - length, projectiles[i].y - 5,
+                                             projectiles[i].x + length, projectiles[i].y + 5,
+                                             al_map_rgba(255, 0, 0, 100));
+                    al_draw_filled_rectangle(projectiles[i].x - length + 3, projectiles[i].y - 3,
+                                             projectiles[i].x + length - 3, projectiles[i].y + 3,
                                              al_map_rgb(255, 30, 30));
+                    al_draw_filled_rectangle(projectiles[i].x - length + 6, projectiles[i].y - 1.5f,
+                                             projectiles[i].x + length - 6, projectiles[i].y + 1.5f,
+                                             al_map_rgb(255, 100, 100));
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 6.0f,
+                                          al_map_rgba(255, 50, 50, 200));
+                    al_draw_filled_circle(projectiles[i].x, projectiles[i].y, 3.0f,
+                                          al_map_rgb(255, 200, 200));
                 }
             }
         }

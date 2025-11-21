@@ -26,29 +26,8 @@ static ImmuneCell defenders[] = {
                 .image_path = "assets/images/defenders/white_blood_cell.png",
                 .image = NULL,
             },
+        .cost_to_unlock = 0,
         .cost_to_place = 50,
-    },
-    {
-        .base =
-            {
-                .name = "Basófilo",
-                .description = "Célula do sistema imunológico envolvida em reações alérgicas e "
-                               "inflamatórias. Libera histamina e outras substâncias químicas para "
-                               "ajudar na defesa contra patógenos.",
-                .health = 100,
-                .speed = 0.5f,
-                .attack = 5,
-                .defense = 5,
-                .attack_cooldown = 2,
-                .active = false,
-                .row = 0,
-                .col = 0,
-                .x = 0,
-                .y = 0,
-                .image_path = "assets/images/defenders/basophil.png",
-                .image = NULL,
-            },
-        .cost_to_place = 100,
     },
     {
         .base =
@@ -70,7 +49,31 @@ static ImmuneCell defenders[] = {
                 .image_path = "assets/images/defenders/eosinophil.png",
                 .image = NULL,
             },
+        .cost_to_unlock = 4,
         .cost_to_place = 75,
+    },
+    {
+        .base =
+            {
+                .name = "Basófilo",
+                .description = "Célula do sistema imunológico envolvida em reações alérgicas e "
+                               "inflamatórias. Libera histamina e outras substâncias químicas para "
+                               "ajudar na defesa contra patógenos.",
+                .health = 100,
+                .speed = 0.5f,
+                .attack = 5,
+                .defense = 5,
+                .attack_cooldown = 2,
+                .active = false,
+                .row = 0,
+                .col = 0,
+                .x = 0,
+                .y = 0,
+                .image_path = "assets/images/defenders/basophil.png",
+                .image = NULL,
+            },
+        .cost_to_unlock = 6,
+        .cost_to_place = 100,
     },
 };
 

@@ -37,7 +37,8 @@ typedef struct
 typedef struct
 {
     Entity base;
-    float cost_to_place;
+    int cost_to_place;
+    int cost_to_unlock;
     int defender_id;
 } ImmuneCell;
 
