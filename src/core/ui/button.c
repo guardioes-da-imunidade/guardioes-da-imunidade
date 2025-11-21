@@ -31,5 +31,7 @@ void draw_button(Button* button)
     if (clicked && is_intersecting && button->on_click)
     {
         button->on_click(button->context);
+
+        reset_mouse_click();
     }
 }
