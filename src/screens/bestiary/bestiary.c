@@ -197,7 +197,7 @@ static void draw(int screen_width, int screen_height)
         if (current->is_defender)
         {
             Defender* defender = (Defender*)current->entity;
-            bool unlocked = PLAYER_ENTITY->defenders[defender->base.id];
+            bool unlocked = Player->defenders[defender->base.id];
             bool equipped = is_defender_equipped(defender->base.id);
 
             char cost_to_unlock[16];

@@ -157,10 +157,7 @@ static void draw_level_connections(void)
                  connection_color, line_thickness);
 }
 
-static bool is_level_unlocked(int level_number)
-{
-    return level_number <= PLAYER_ENTITY->current_stage;
-}
+static bool is_level_unlocked(int level_number) { return level_number <= Player->current_stage; }
 
 static void draw_level_nodes(void)
 {

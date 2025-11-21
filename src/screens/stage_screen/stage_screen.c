@@ -505,11 +505,11 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         {
             if (stage_complete)
             {
-                PLAYER_ENTITY->vaccines += enemies_killed_this_stage;
+                Player->vaccines += enemies_killed_this_stage;
 
-                if (PLAYER_ENTITY->current_stage == stage_config.stage_number)
+                if (Player->current_stage == stage_config.stage_number)
                 {
-                    PLAYER_ENTITY->current_stage++;
+                    Player->current_stage++;
                 }
             }
 
@@ -551,7 +551,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
             for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
-                const Defender* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
+                const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
 
                 if (!defender)
                     continue;
@@ -679,7 +679,7 @@ static void draw(int screen_width, int screen_height)
 
         for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
         {
-            const Defender* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
+            const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
 
             if (!defender)
                 continue;

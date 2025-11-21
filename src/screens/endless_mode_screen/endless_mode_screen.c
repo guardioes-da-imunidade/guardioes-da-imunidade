@@ -389,7 +389,7 @@ static void update_projectiles(int screen_width)
                                                  al_map_rgb(255, 200, 50));
                             enemies[j].base.active = false;
                             enemies_killed++;
-                            PLAYER_ENTITY->vaccines++;
+                            Player->vaccines++;
                         }
                         projectiles[i].active = false;
                         break;
@@ -498,7 +498,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
             for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
-                const Defender* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
+                const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
 
                 if (!defender)
                     continue;
@@ -611,7 +611,7 @@ static void draw(int screen_width, int screen_height)
 
         for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
         {
-            const Defender* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
+            const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
 
             if (!defender)
                 continue;

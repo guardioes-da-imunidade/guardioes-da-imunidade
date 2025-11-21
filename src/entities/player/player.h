@@ -22,7 +22,7 @@ typedef struct
     Defender* defenders[];
 } PlayerEntity;
 
-extern PlayerEntity* PLAYER_ENTITY;
+extern PlayerEntity* Player;
 
 void init_player();
 

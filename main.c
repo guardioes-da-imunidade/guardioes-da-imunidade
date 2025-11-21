@@ -1,8 +1,6 @@
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_native_dialog.h>
-#include <allegro5/allegro_audio.h>
-#include <allegro5/allegro_acodec.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -15,7 +13,7 @@
 #include "src/screens/base/menu.h"
 
 Screen *current_screen = &MenuScreen;
-PlayerEntity *PLAYER_ENTITY = NULL;
+PlayerEntity* Player = NULL;
 
 int main()
 {
@@ -68,7 +66,7 @@ int main()
 
     current_screen->destroy();
 
-    free(PLAYER_ENTITY);
+    free(Player);
     al_destroy_display(display);
     al_destroy_event_queue(event_queue);
     al_destroy_timer(timer);

@@ -4,26 +4,26 @@ void init_player()
 {
     int count = get_defenders_count();
 
-    PLAYER_ENTITY = malloc(sizeof(PlayerEntity) + sizeof(Defender*) * count);
+    Player = malloc(sizeof(PlayerEntity) + sizeof(Defender*) * count);
 
-    if (PLAYER_ENTITY == NULL)
+    if (Player == NULL)
     {
-        fprintf(stderr, "Falha ao alocar memória para PLAYER_ENTITY\n");
+        fprintf(stderr, "Falha ao alocar memória para Player\n");
         exit(1);
     }
 
-    PLAYER_ENTITY->vaccines = 10;
-    PLAYER_ENTITY->current_stage = 1;
+    Player->vaccines = 10;
+    Player->current_stage = 1;
 
-    for (int i = 0; i < MAX_IN_USE_SLOTS; i++) PLAYER_ENTITY->in_use_slots[i] = -1;
+    for (int i = 0; i < MAX_IN_USE_SLOTS; i++) Player->in_use_slots[i] = -1;
 
-    for (int i = 0; i < count; i++) PLAYER_ENTITY->defenders[i] = NULL;
+    for (int i = 0; i < count; i++) Player->defenders[i] = NULL;
 
     const Defender* first = get_defender_by_id(0);
     if (first != NULL)
     {
-        PLAYER_ENTITY->defenders[0] = (Defender*)first;
-        PLAYER_ENTITY->in_use_slots[0] = 0;
+        Player->defenders[0] = (Defender*)first;
+        Player->in_use_slots[0] = 0;
     }
 }
 
@@ -32,18 +32,18 @@ int get_player_equipped_inventory_size()
     int count = 0;
 
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
-        if (PLAYER_ENTITY->in_use_slots[i] != -1)
+        if (Player->in_use_slots[i] != -1)
             count++;
 
     return count;
 }
 
-bool is_defender_unlocked(int id) { return PLAYER_ENTITY->defenders[id] != NULL; }
+bool is_defender_unlocked(int id) { return Player->defenders[id] != NULL; }
 
 bool is_defender_equipped(int id)
 {
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
-        if (PLAYER_ENTITY->in_use_slots[i] == id)
+        if (Player->in_use_slots[i] == id)
             return true;
 
     return false;
@@ -54,7 +54,7 @@ bool is_defender_equipped(int id)
 const Defender* get_equipped_defender(int id)
 {
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
-        if (PLAYER_ENTITY->in_use_slots[i] == id)
+        if (Player->in_use_slots[i] == id)
             return get_defender_by_id(id);
 
     return NULL;
@@ -67,10 +67,10 @@ void unlock_defender(Defender* defender)
     if (is_defender_unlocked(id))
         return;
 
-    if (PLAYER_ENTITY->vaccines >= defender->cost_to_unlock)
+    if (Player->vaccines >= defender->cost_to_unlock)
     {
-        PLAYER_ENTITY->vaccines -= defender->cost_to_unlock;
-        PLAYER_ENTITY->defenders[id] = defender;
+        Player->vaccines -= defender->cost_to_unlock;
+        Player->defenders[id] = defender;
     }
 }
 
@@ -83,9 +83,9 @@ void equip_defender(Defender* defender)
 
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
     {
-        if (PLAYER_ENTITY->in_use_slots[i] == -1)
+        if (Player->in_use_slots[i] == -1)
         {
-            PLAYER_ENTITY->in_use_slots[i] = id;
+            Player->in_use_slots[i] = id;
 
             return;
         }
@@ -101,9 +101,9 @@ void unequip_defender(Defender* defender)
 
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
     {
-        if (PLAYER_ENTITY->in_use_slots[i] == id)
+        if (Player->in_use_slots[i] == id)
         {
-            PLAYER_ENTITY->in_use_slots[i] = -1;
+            Player->in_use_slots[i] = -1;
 
             return;
         }
@@ -113,6 +113,6 @@ void unequip_defender(Defender* defender)
 void print_slots()
 {
     printf("[SLOTS] ");
-    for (int i = 0; i < MAX_IN_USE_SLOTS; i++) printf("%d ", PLAYER_ENTITY->in_use_slots[i]);
+    for (int i = 0; i < MAX_IN_USE_SLOTS; i++) printf("%d ", Player->in_use_slots[i]);
     printf("\n");
 }
