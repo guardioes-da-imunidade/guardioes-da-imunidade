@@ -546,12 +546,10 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
             for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
-                int defender_id = PLAYER_ENTITY->in_use_slots[i];
+                const ImmuneCell* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
 
-                if (defender_id == -1)
-                    continue;
-
-                const ImmuneCell* defender = get_immunecell_by_index(defender_id);
+                if (!defender)
+                    return;
 
                 int x1 = start_x + i * (selector_width + 10);
                 int x2 = x1 + selector_width;
@@ -675,10 +673,10 @@ static void draw(int screen_width, int screen_height)
 
         for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
         {
-            int defender_id = PLAYER_ENTITY->in_use_slots[i];
+            const ImmuneCell* defender = get_equipped_defender(PLAYER_ENTITY->in_use_slots[i]);
 
-            if (defender_id == -1)
-                continue;
+            if (!defender)
+                return;
 
             int x1 = start_x + i * (selector_width + 10);
             int x2 = x1 + selector_width;
@@ -686,12 +684,10 @@ static void draw(int screen_width, int screen_height)
             ALLEGRO_COLOR border_color;
             ALLEGRO_COLOR text_color;
 
-            const ImmuneCell* defender = get_immunecell_by_index(defender_id);
-
             if (vitamins >= defender->cost_to_place)
             {
-                color = (selected_defender == defender_id) ? al_map_rgba(0, 255, 0, 180)
-                                                           : al_map_rgba(80, 80, 80, 150);
+                color = (selected_defender == defender->defender_id) ? al_map_rgba(0, 255, 0, 180)
+                                                                     : al_map_rgba(80, 80, 80, 150);
                 border_color = al_map_rgb(255, 255, 255);
                 text_color = al_map_rgb(255, 215, 0);
             }

@@ -676,25 +676,22 @@ static void draw(int screen_width, int screen_height)
         {
             if (defenders[i].base.active)
             {
-                int defender_id = defenders[i].defender_id;
+                const ImmuneCell* defender = get_equipped_defender(defenders[i].defender_id);
 
-                const ImmuneCell* defender = get_immunecell_by_index(defender_id);
+                if (!defender)
+                    continue;
 
-                if (defender_id >= 0 && defender)
-                {
-                    float x = defenders[i].base.col * (cell_width + 1.0f);
-                    float y = GRID_START_Y + defenders[i].base.row * cell_height;
-                    float scale = (defender->base.image_width > 0)
-                                      ? (cell_width * 0.8f) / defender->base.image_width
-                                      : 1.0f;
-                    float img_w = defender->base.image_width * scale;
-                    float img_h = defender->base.image_height * scale;
+                float x = defenders[i].base.col * (cell_width + 1.0f);
+                float y = GRID_START_Y + defenders[i].base.row * cell_height;
+                float scale = (defender->base.image_width > 0)
+                                  ? (cell_width * 0.8f) / defender->base.image_width
+                                  : 1.0f;
+                float img_w = defender->base.image_width * scale;
+                float img_h = defender->base.image_height * scale;
 
-                    al_draw_scaled_bitmap(
-                        defender->base.image, 0, 0, defender->base.image_width,
-                        defender->base.image_height, x + (cell_width - img_w) / 2.0f,
-                        y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
-                }
+                al_draw_scaled_bitmap(defender->base.image, 0, 0, defender->base.image_width,
+                                      defender->base.image_height, x + (cell_width - img_w) / 2.0f,
+                                      y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
             }
         }
 
@@ -828,8 +825,6 @@ static void destroy(void)
 
     for (int i = 0; i < 3; i++)
     {
-        const ImmuneCell* defender = get_immunecell_by_index(i);
-
         if (enemy_images[i])
         {
             al_destroy_bitmap(enemy_images[i]);
