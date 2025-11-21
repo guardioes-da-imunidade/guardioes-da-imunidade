@@ -419,18 +419,6 @@ static void draw(int screen_width, int screen_height)
         al_draw_text(font, al_map_rgb(255, 255, 255), 1130, 655, ALLEGRO_ALIGN_CENTRE,
                      "Ver Cutscene");
 
-        ALLEGRO_COLOR blue = al_map_rgb(135, 206, 250);
-        ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
-        float circle_x = 1240;
-        float circle_y = 50;
-        float radius = 25;
-        al_draw_filled_circle(circle_x, circle_y, radius, blue);
-        al_draw_circle(circle_x, circle_y, radius, black, 3);
-
-        char vaccines_text[10];
-        snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
-        al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
-
         return;
     }
 
@@ -438,18 +426,7 @@ static void draw(int screen_width, int screen_height)
         al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
                               al_get_bitmap_height(background), 0, 0, 1280, 720, 0);
 
-    ALLEGRO_COLOR blue = al_map_rgb(135, 206, 250);
-    ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
-
-    float circle_x = 1240;
-    float circle_y = 50;
-    float radius = 25;
-    al_draw_filled_circle(circle_x, circle_y, radius, blue);
-    al_draw_circle(circle_x, circle_y, radius, black, 3);
-
-    char vaccines_text[10];
-    snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
-    al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
+    draw_vaccines_count(screen_width, screen_height);
 }
 
 static void destroy(void)

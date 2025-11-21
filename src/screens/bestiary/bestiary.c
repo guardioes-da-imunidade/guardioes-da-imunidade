@@ -194,6 +194,8 @@ static void draw(int screen_width, int screen_height)
         draw_stat_bar("Cooldown", 1.0f / entity->attack_cooldown, 2.0f, stats_x, stats_y + 200,
                       bar_width, bar_height, al_map_rgb(150, 0, 150));
 
+        draw_vaccines_count(screen_width, screen_height);
+
         if (current->is_defender)
         {
             Defender* defender = (Defender*)current->entity;

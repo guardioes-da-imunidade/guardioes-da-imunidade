@@ -8,6 +8,7 @@
 #include "../../core/palette.h"
 #include "../../core/typography.h"
 #include "../../core/ui/button.h"
+#include "../../core/ui/vaccines.h"
 #include "../../entities/entities.h"
 #include "../../entities/player/player-entity.h"
 #include "../base/menu.h"

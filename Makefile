@@ -7,6 +7,7 @@ SRC = main.c \
 	src/core/typography.c \
 	src/core/input.c \
 	src/core/ui/button.c \
+	src/core/ui/vaccines.c \
 	\
     src/screens/base/menu.c \
     src/screens/base/config.c \
