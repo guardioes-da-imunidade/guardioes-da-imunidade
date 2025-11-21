@@ -18,9 +18,6 @@ extern GameState current_game_state;
 extern Screen* current_screen;
 
 static ALLEGRO_BITMAP* background = NULL;
-static ALLEGRO_BITMAP* defender_images[MAX_IN_USE_SLOTS] = {NULL, NULL, NULL};
-static int defender_w[MAX_IN_USE_SLOTS] = {0, 0, 0};
-static int defender_h[MAX_IN_USE_SLOTS] = {0, 0, 0};
 static ALLEGRO_BITMAP* enemy_images[3] = {NULL, NULL, NULL};
 static int enemy_w[3] = {0, 0, 0};
 static int enemy_h[3] = {0, 0, 0};
@@ -188,26 +185,6 @@ static void spawn_orb(void)
 
 static void load_images(void)
 {
-    for (int i = 0; i < in_use_count; i++)
-    {
-        int defender_id = in_use_defenders[i];
-        if (defender_id >= 0 && defender_id < 10)
-        {
-            const ImmuneCell* defender = get_immunecell_by_index(defender_id);
-
-            defender_images[i] = al_load_bitmap(defender->base.image_path);
-            if (defender_images[i])
-            {
-                defender_w[i] = al_get_bitmap_width(defender_images[i]);
-                defender_h[i] = al_get_bitmap_height(defender_images[i]);
-            }
-            else
-            {
-                defender_w[i] = defender_h[i] = 0;
-            }
-        }
-    }
-
     enemy_images[0] = al_load_bitmap("assets/images/enemies/virus.png");
     enemy_images[1] = al_load_bitmap("assets/images/enemies/parasite.png");
     enemy_images[2] = al_load_bitmap("assets/images/enemies/bacterium.png");
@@ -733,10 +710,10 @@ static void draw(int screen_width, int screen_height)
             al_draw_filled_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, color);
             al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, border_color, 2.0f);
 
-            if (defender_images[i])
+            if (defender)
             {
-                al_draw_scaled_bitmap(defender_images[i], 0, 0, defender_w[i], defender_h[i],
-                                      x1 + 35, 15, 35, 35, 0);
+                al_draw_scaled_bitmap(defender->base.image, 0, 0, defender->base.image_width,
+                                      defender->base.image_height, x1 + 35, 15, 35, 35, 0);
             }
 
             char cost_text[16];
@@ -774,20 +751,23 @@ static void draw(int screen_width, int screen_height)
             if (defenders[i].base.active)
             {
                 int slot = defenders[i].base.slot;
-                if (slot >= 0 && slot < in_use_count && defender_images[slot])
+
+                const ImmuneCell* defender = get_immunecell_by_index(slot);
+
+                if (slot >= 0 && slot < in_use_count && defender)
                 {
                     float x = defenders[i].base.col * (cell_width + 1.0f);
                     float y = GRID_START_Y + defenders[i].base.row * cell_height;
-                    float scale = (defender_w[slot] > 0)
-                                      ? (cell_width * 0.8f) / (float)defender_w[slot]
+                    float scale = (defender->base.image_width > 0)
+                                      ? (cell_width * 0.8f) / defender->base.image_width
                                       : 1.0f;
-                    float img_w = defender_w[slot] * scale;
-                    float img_h = defender_h[slot] * scale;
+                    float img_w = defender->base.image_width * scale;
+                    float img_h = defender->base.image_height * scale;
 
-                    al_draw_scaled_bitmap(defender_images[slot], 0, 0, defender_w[slot],
-                                          defender_h[slot], x + (cell_width - img_w) / 2.0f,
-                                          y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h,
-                                          0);
+                    al_draw_scaled_bitmap(
+                        defender->base.image, 0, 0, defender->base.image_width,
+                        defender->base.image_height, x + (cell_width - img_w) / 2.0f,
+                        y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
                 }
             }
         }
@@ -898,16 +878,6 @@ static void destroy(void)
     {
         al_destroy_font(title_font);
         title_font = NULL;
-    }
-
-    for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
-    {
-        if (defender_images[i])
-        {
-            al_destroy_bitmap(defender_images[i]);
-            defender_images[i] = NULL;
-            defender_w[i] = defender_h[i] = 0;
-        }
     }
 
     for (int i = 0; i < 3; i++)

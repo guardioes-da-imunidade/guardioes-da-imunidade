@@ -19,8 +19,6 @@ extern Screen* current_screen;
 
 static ALLEGRO_BITMAP* background = NULL;
 static ALLEGRO_BITMAP* enemy_images[3] = {NULL, NULL, NULL};
-static int defender_w[3] = {0, 0, 0};
-static int defender_h[3] = {0, 0, 0};
 static int enemy_w[3] = {0, 0, 0};
 static int enemy_h[3] = {0, 0, 0};
 
@@ -158,17 +156,6 @@ static void load_images(void)
 
     for (int i = 0; i < 3; i++)
     {
-        const ImmuneCell* defender = get_immunecell_by_index(i);
-
-        if (defender)
-        {
-            defender_w[i] = al_get_bitmap_width(defender->base.image);
-            defender_h[i] = al_get_bitmap_height(defender->base.image);
-        }
-        else
-        {
-            defender_w[i] = defender_h[i] = 0;
-        }
         if (enemy_images[i])
         {
             enemy_w[i] = al_get_bitmap_width(enemy_images[i]);
@@ -641,8 +628,8 @@ static void draw(int screen_width, int screen_height)
 
             if (defender)
             {
-                al_draw_scaled_bitmap(defender->base.image, 0, 0, defender_w[i], defender_h[i],
-                                      x1 + 35, 15, 35, 35, 0);
+                al_draw_scaled_bitmap(defender->base.image, 0, 0, defender->base.image_width,
+                                      defender->base.image_height, x1 + 35, 15, 35, 35, 0);
             }
 
             char cost_text[16];
@@ -689,17 +676,15 @@ static void draw(int screen_width, int screen_height)
             {
                 float x = defenders[i].base.col * (cell_width + 1.0f);
                 float y = GRID_START_Y + defenders[i].base.row * cell_height;
-                float scale =
-                    (defender_w[defenders[i].defender_id] > 0)
-                        ? (cell_width * 0.8f) / (float)defender_w[defenders[i].defender_id]
-                        : 1.0f;
-                float img_w = defender_w[defenders[i].defender_id] * scale;
-                float img_h = defender_h[defenders[i].defender_id] * scale;
+                float scale = (defender->base.image_width > 0)
+                                  ? (cell_width * 0.8f) / defender->base.image_width
+                                  : 1.0f;
+                float img_w = defender->base.image_width * scale;
+                float img_h = defender->base.image_height * scale;
 
-                al_draw_scaled_bitmap(
-                    defender->base.image, 0, 0, defender_w[defenders[i].defender_id],
-                    defender_h[defenders[i].defender_id], x + (cell_width - img_w) / 2.0f,
-                    y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
+                al_draw_scaled_bitmap(defender->base.image, 0, 0, defender->base.image_width,
+                                      defender->base.image_height, x + (cell_width - img_w) / 2.0f,
+                                      y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
             }
         }
 

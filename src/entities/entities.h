@@ -30,6 +30,8 @@ typedef struct
     ProjectileType projectile_type;
     const char* image_path;
     ALLEGRO_BITMAP* image;
+    int image_width;
+    int image_height;
 } Entity;
 
 typedef struct

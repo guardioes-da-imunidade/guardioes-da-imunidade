@@ -155,7 +155,10 @@ void load_microorganisms()
         microorganisms[microorganisms_index].is_defender = true;
         microorganisms[microorganisms_index].entity = &defenders[i].base;
 
-        defenders[i].base.image = al_load_bitmap(defenders[i].base.image_path);
+        ALLEGRO_BITMAP* image = al_load_bitmap(defenders[i].base.image_path);
+        defenders[i].base.image = image;
+        defenders[i].base.image_width = al_get_bitmap_width(image);
+        defenders[i].base.image_height = al_get_bitmap_height(image);
 
         if (!defenders[i].base.image)
         {
@@ -170,7 +173,10 @@ void load_microorganisms()
         microorganisms[microorganisms_index].is_defender = false;
         microorganisms[microorganisms_index].entity = &enemies[i].base;
 
-        enemies[i].base.image = al_load_bitmap(enemies[i].base.image_path);
+        ALLEGRO_BITMAP* image = al_load_bitmap(enemies[i].base.image_path);
+        enemies[i].base.image = image;
+        enemies[i].base.image_width = al_get_bitmap_width(image);
+        enemies[i].base.image_height = al_get_bitmap_height(image);
 
         if (!enemies[i].base.image)
         {
