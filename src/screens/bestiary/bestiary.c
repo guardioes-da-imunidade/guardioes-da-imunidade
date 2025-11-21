@@ -20,7 +20,7 @@ static void draw_stat_bar(const char* label, float value, float max_value, float
 
     float filled = bar_width * percent;
 
-    al_draw_text(fonts[FONT_H5], COLOR_WHITE, x, y - 22, ALLEGRO_ALIGN_LEFT, label);
+    al_draw_text(fonts[FONT_H6], COLOR_WHITE, x, y - 22, ALLEGRO_ALIGN_LEFT, label);
 
     al_draw_filled_rectangle(x, y, x + bar_width, y + bar_height, al_map_rgb(40, 40, 40));
 
@@ -77,7 +77,7 @@ static void draw(int screen_width, int screen_height)
         .width = 160,
         .height = 75,
         .fill_color = &COLOR_YELLOW,
-        .text = {.content = "Voltar", .color = &COLOR_BLACK, .font = fonts[FONT_H2]},
+        .text = {.content = "Voltar", .color = &COLOR_BLACK, .font = fonts[FONT_H3]},
         .border = {.border_color = &COLOR_BLACK, .thickness = 2},
         .on_click = on_back_screen,
         .context = NULL,
@@ -133,7 +133,7 @@ static void draw(int screen_width, int screen_height)
             .y = button_y,
             .width = button_width,
             .height = button_height,
-            .text = {.content = entity->name, .color = &COLOR_WHITE, .font = fonts[FONT_NORMAL]},
+            .text = {.content = entity->name, .color = &COLOR_WHITE, .font = fonts[FONT_H7]},
             .fill_color = fill_color,
             .border = {.border_color = &COLOR_BLACK, .thickness = 2},
             .on_click = on_microorganism_change,
@@ -169,7 +169,7 @@ static void draw(int screen_width, int screen_height)
 
         if (entity->description)
         {
-            al_draw_multiline_text(fonts[FONT_H5], COLOR_WHITE, image_x - 100,
+            al_draw_multiline_text(fonts[FONT_H6], COLOR_WHITE, image_x - 100,
                                    image_y + image_height + 100, 400, 24, ALLEGRO_ALIGN_LEFT,
                                    entity->description);
         }
@@ -202,7 +202,7 @@ static void draw(int screen_width, int screen_height)
 
             char cost_to_unlock[16];
             sprintf(cost_to_unlock, "Custo: %d", d->cost_to_place);
-            al_draw_text(fonts[FONT_H5], COLOR_WHITE, stats_x, (stats_y + 250) - 22,
+            al_draw_text(fonts[FONT_H6], COLOR_WHITE, stats_x, (stats_y + 250) - 22,
                          ALLEGRO_ALIGN_LEFT, cost_to_unlock);
 
             char cost_text[16];
@@ -216,7 +216,7 @@ static void draw(int screen_width, int screen_height)
                     .width = 200,
                     .height = 60,
                     .fill_color = &COLOR_GREEN,
-                    .text = {.content = cost_text, .color = &COLOR_BLACK, .font = fonts[FONT_H4]},
+                    .text = {.content = cost_text, .color = &COLOR_BLACK, .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_buy_defender,
                     .context = d,
@@ -232,7 +232,7 @@ static void draw(int screen_width, int screen_height)
                     .width = 200,
                     .height = 60,
                     .fill_color = &COLOR_BLUE,
-                    .text = {.content = "Equipar", .color = &COLOR_WHITE, .font = fonts[FONT_H4]},
+                    .text = {.content = "Equipar", .color = &COLOR_WHITE, .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_equip_defender,
                     .context = d,
@@ -250,7 +250,7 @@ static void draw(int screen_width, int screen_height)
                     .fill_color = &COLOR_RED,
                     .text = {.content = "Desequipar",
                              .color = &COLOR_WHITE,
-                             .font = fonts[FONT_H4]},
+                             .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_unequip_defender,
                     .context = d,

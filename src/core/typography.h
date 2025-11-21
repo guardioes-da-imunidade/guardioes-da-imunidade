@@ -4,7 +4,6 @@
 #include <allegro5/allegro_font.h>
 
 #define FONT_PATH_TITLE "assets/fonts/PressStart2P.ttf"
-#define FONT_PATH_TEXT "assets/fonts/arial.ttf"
 
 typedef enum
 {
@@ -14,10 +13,9 @@ typedef enum
     FONT_H4,
     FONT_H5,
     FONT_H6,
-
-    FONT_SMALL,
-    FONT_NORMAL,
-    FONT_LARGE,
+    FONT_H7,
+    FONT_H8,
+    FONT_H9,
 
     FONT_COUNT
 } FontType;
