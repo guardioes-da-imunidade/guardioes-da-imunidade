@@ -196,17 +196,17 @@ static void draw(int screen_width, int screen_height)
 
         if (current->is_defender)
         {
-            Defender* d = (Defender*)current->entity;
-            bool unlocked = PLAYER_ENTITY->defenders[d->base.id];
-            bool equipped = is_defender_equipped(d->base.id);
+            Defender* defender = (Defender*)current->entity;
+            bool unlocked = PLAYER_ENTITY->defenders[defender->base.id];
+            bool equipped = is_defender_equipped(defender->base.id);
 
             char cost_to_unlock[16];
-            sprintf(cost_to_unlock, "Custo: %d", d->cost_to_place);
+            sprintf(cost_to_unlock, "Custo: %d", defender->cost_to_place);
             al_draw_text(fonts[FONT_H6], COLOR_WHITE, stats_x, (stats_y + 250) - 22,
                          ALLEGRO_ALIGN_LEFT, cost_to_unlock);
 
             char cost_text[16];
-            sprintf(cost_text, "Comprar (%d)", d->cost_to_unlock);
+            sprintf(cost_text, "Comprar (%d)", defender->cost_to_unlock);
 
             int action_button_width = 200;
             int action_button_height = 60;
@@ -222,7 +222,7 @@ static void draw(int screen_width, int screen_height)
                     .text = {.content = cost_text, .color = &COLOR_BLACK, .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_buy_defender,
-                    .context = d,
+                    .context = defender,
                 };
 
                 draw_button(&buy_button);
@@ -238,7 +238,7 @@ static void draw(int screen_width, int screen_height)
                     .text = {.content = "Equipar", .color = &COLOR_WHITE, .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_equip_defender,
-                    .context = d,
+                    .context = defender,
                 };
 
                 draw_button(&equip_button);
@@ -256,7 +256,7 @@ static void draw(int screen_width, int screen_height)
                              .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_unequip_defender,
-                    .context = d,
+                    .context = defender,
                 };
 
                 draw_button(&unequip_button);
