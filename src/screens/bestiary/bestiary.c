@@ -219,7 +219,7 @@ static void draw(int screen_width, int screen_height)
                     .width = action_button_width,
                     .height = action_button_height,
                     .fill_color = &COLOR_GREEN,
-                    .text = {.content = cost_text, .color = &COLOR_BLACK, .font = fonts[FONT_H5]},
+                    .text = {.content = cost_text, .color = &COLOR_WHITE, .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
                     .on_click = on_buy_defender,
                     .context = defender,
