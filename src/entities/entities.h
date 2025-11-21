@@ -55,12 +55,13 @@ typedef struct
 } Microorganism;
 
 extern Microorganism microorganisms[];
-extern int total_microorganisms;
 
 void load_entities();
 
 const Defender* get_defender_by_id(int index);
 
 int get_immunecell_count();
+
+int get_entities_count();
 
 #endif

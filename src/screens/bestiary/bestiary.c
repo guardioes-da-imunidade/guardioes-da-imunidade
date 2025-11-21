@@ -47,7 +47,7 @@ static void init(ALLEGRO_DISPLAY* display)
 {
     background = al_load_bitmap("assets/images/menu/background_bestiary.jpg");
 
-    microorganisms_indexes_memo = malloc(sizeof(int) * total_microorganisms);
+    microorganisms_indexes_memo = malloc(sizeof(int) * get_entities_count());
     if (!microorganisms_indexes_memo)
     {
         fprintf(stderr, "Erro ao alocar memória.\n");
@@ -92,7 +92,7 @@ static void draw(int screen_width, int screen_height)
     float button_height = 50;
     int buttons_per_row = 2;
 
-    for (int i = 0; i < total_microorganisms; i++)
+    for (int i = 0; i < get_entities_count(); i++)
     {
         microorganisms_indexes_memo[i] = i;
 
@@ -141,7 +141,7 @@ static void draw(int screen_width, int screen_height)
         draw_button(&button);
     }
 
-    if (current_creature_index >= 0 && current_creature_index < total_microorganisms)
+    if (current_creature_index >= 0 && current_creature_index < get_entities_count())
     {
         Microorganism* current = &microorganisms[current_creature_index];
         Entity* entity = current->entity;

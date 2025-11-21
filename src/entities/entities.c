@@ -3,7 +3,7 @@
 // TO-DO: Ler de um arquivo JSON para remover a responsabilidade do C saber cada criatura do jogo
 
 Microorganism microorganisms[10];
-int total_microorganisms = 0;
+static int total_entities = 0;
 
 static Defender defenders[] = {
     {
@@ -150,13 +150,13 @@ static int enemies_count = sizeof(enemies) / sizeof(Enemy);
 
 void load_entities()
 {
-    int i, microorganisms_index = 0;
+    int i, entities_index = 0;
 
     for (i = 0; i < defenders_count; i++)
     {
         defenders[i].base.id = i;
-        microorganisms[microorganisms_index].is_defender = true;
-        microorganisms[microorganisms_index].entity = &defenders[i].base;
+        microorganisms[entities_index].is_defender = true;
+        microorganisms[entities_index].entity = &defenders[i].base;
 
         ALLEGRO_BITMAP* image = al_load_bitmap(defenders[i].base.image_path);
         defenders[i].base.image = image;
@@ -168,14 +168,14 @@ void load_entities()
             printf("Falha ao carregar imagem: %s\n", defenders[i].base.image_path);
         }
 
-        microorganisms_index++;
+        entities_index++;
     }
 
     for (i = 0; i < enemies_count; i++)
     {
         defenders[i].base.id = i;
-        microorganisms[microorganisms_index].is_defender = false;
-        microorganisms[microorganisms_index].entity = &enemies[i].base;
+        microorganisms[entities_index].is_defender = false;
+        microorganisms[entities_index].entity = &enemies[i].base;
 
         ALLEGRO_BITMAP* image = al_load_bitmap(enemies[i].base.image_path);
         enemies[i].base.image = image;
@@ -187,10 +187,10 @@ void load_entities()
             printf("Falha ao carregar imagem: %s\n", enemies[i].base.image_path);
         }
 
-        microorganisms_index++;
+        entities_index++;
     }
 
-    total_microorganisms = microorganisms_index;
+    total_entities = entities_index;
 }
 
 const Defender* get_defender_by_id(int index)
@@ -204,3 +204,5 @@ const Defender* get_defender_by_id(int index)
 }
 
 int get_immunecell_count() { return defenders_count; }
+
+int get_entities_count() { return total_entities; }
