@@ -208,13 +208,16 @@ static void draw(int screen_width, int screen_height)
             char cost_text[16];
             sprintf(cost_text, "Comprar (%d)", d->cost_to_unlock);
 
+            int action_button_width = 200;
+            int action_button_height = 60;
+
             if (!unlocked)
             {
                 Button buy_button = {
-                    .x = divider_x,
+                    .x = stats_x - action_button_width - 25,
                     .y = stats_y,
-                    .width = 200,
-                    .height = 60,
+                    .width = action_button_width,
+                    .height = action_button_height,
                     .fill_color = &COLOR_GREEN,
                     .text = {.content = cost_text, .color = &COLOR_BLACK, .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
@@ -227,10 +230,10 @@ static void draw(int screen_width, int screen_height)
             else if (!equipped)
             {
                 Button equip_button = {
-                    .x = divider_x,
+                    .x = stats_x - action_button_width - 25,
                     .y = stats_y,
-                    .width = 200,
-                    .height = 60,
+                    .width = action_button_width,
+                    .height = action_button_height,
                     .fill_color = &COLOR_BLUE,
                     .text = {.content = "Equipar", .color = &COLOR_WHITE, .font = fonts[FONT_H5]},
                     .border = {.border_color = &COLOR_BLACK, .thickness = 2},
@@ -243,10 +246,10 @@ static void draw(int screen_width, int screen_height)
             else if (get_player_equipped_inventory_size() > 1)
             {
                 Button unequip_button = {
-                    .x = divider_x,
+                    .x = stats_x - action_button_width - 25,
                     .y = stats_y,
-                    .width = 200,
-                    .height = 60,
+                    .width = action_button_width,
+                    .height = action_button_height,
                     .fill_color = &COLOR_RED,
                     .text = {.content = "Desequipar",
                              .color = &COLOR_WHITE,
