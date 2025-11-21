@@ -60,8 +60,8 @@ void load_entities();
 
 const Defender* get_defender_by_id(int index);
 
-int get_immunecell_count();
-
+int get_defenders_count();
+int get_enemies_count();
 int get_entities_count();
 
 #endif

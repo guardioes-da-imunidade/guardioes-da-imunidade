@@ -2,7 +2,7 @@
 
 void init_player()
 {
-    int count = get_immunecell_count();
+    int count = get_defenders_count();
 
     PLAYER_ENTITY = malloc(sizeof(PlayerEntity) + sizeof(Defender*) * count);
 

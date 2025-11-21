@@ -203,6 +203,6 @@ const Defender* get_defender_by_id(int index)
     return &defenders[index];
 }
 
-int get_immunecell_count() { return defenders_count; }
-
+int get_defenders_count() { return defenders_count; }
+int get_enemies_count() { return enemies_count; }
 int get_entities_count() { return total_entities; }
