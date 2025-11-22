@@ -183,6 +183,9 @@ static float orb_spawn_timer = 0.0f;
 static int tutorial_defender_row = -1;
 static bool tutorial_orb_frozen = false;
 
+static void spawn_particle_burst(float x, float y, int count, ALLEGRO_COLOR color);
+static void add_defender(int row, int col, int defender_slot);
+
 static void init_arrays(void)
 {
     for (int i = 0; i < MAX_DEFENDERS; i++) defenders[i].active = false;
@@ -206,45 +209,147 @@ static void load_in_use_defenders(void)
     }
 }
 
+static void handle_welcome_step(void)
+{
+    tutorial_step = TUTORIAL_VITAMINS_EXPLANATION;
+    tutorial_timer = 0.0f;
+    orb_spawn_timer = 0.0f;
+}
+
+static void handle_vitamins_step(void)
+{
+    tutorial_step = TUTORIAL_WAIT_ORB;
+    tutorial_timer = 0.0f;
+}
+
+static void handle_defender_explanation(void)
+{
+    tutorial_step = TUTORIAL_SELECT_DEFENDER;
+    tutorial_timer = 0.0f;
+}
+
+static void handle_enemy_explanation(void) { tutorial_timer = 0.0f; }
+
+static void handle_projectile_explanation(void) { tutorial_timer = 0.0f; }
+
+static void handle_objective_explanation(void)
+{
+    tutorial_step = TUTORIAL_COMPLETE;
+    tutorial_active = false;
+
+    wave_timer = 0.0f;
+    current_wave = 0;
+    wave_active = false;
+    enemies_spawned_in_wave = 0;
+}
+
+static void handle_collect_orb(int mouse_x, int mouse_y)
+{
+    if (tutorial_orb_index >= 0 && orbs[tutorial_orb_index].active)
+    {
+        float dx = mouse_x - orbs[tutorial_orb_index].x;
+        float dy = mouse_y - orbs[tutorial_orb_index].y;
+        float dist2 = dx * dx + dy * dy;
+
+        if (dist2 < 20.0f * 20.0f)
+        {
+            vitamins += 75;
+            orbs[tutorial_orb_index].active = false;
+
+            spawn_particle_burst(orbs[tutorial_orb_index].x, orbs[tutorial_orb_index].y, 15,
+                                 al_map_rgb(255, 215, 0));
+
+            tutorial_step = TUTORIAL_DEFENDER_EXPLANATION;
+            tutorial_timer = 0.0f;
+            tutorial_orb_frozen = false;
+        }
+    }
+}
+
+static void handle_select_defender(int mouse_x, int mouse_y)
+{
+    if (mouse_y < SELECTOR_HEIGHT)
+    {
+        int selector_width = 100;
+        int start_x = 10;
+
+        for (int i = 0; i < in_use_count; i++)
+        {
+            int x1 = start_x + i * (selector_width + 10);
+            int x2 = x1 + selector_width;
+
+            if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 && mouse_y <= SELECTOR_HEIGHT - 10)
+            {
+                if (vitamins >= defender_costs[i])
+                {
+                    selected_defender_slot = i;
+                    tutorial_step = TUTORIAL_PLACE_DEFENDER;
+                    tutorial_timer = 0.0f;
+                }
+                break;
+            }
+        }
+    }
+}
+
+static void handle_place_defender(int mouse_x, int mouse_y)
+{
+    if (mouse_y >= GRID_START_Y)
+    {
+        int col = (int)(mouse_x / (cell_width + 1.0f));
+        int row = (int)((mouse_y - GRID_START_Y) / cell_height);
+
+        if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS)
+        {
+            if (selected_defender_slot != -1)
+            {
+                add_defender(row, col, selected_defender_slot);
+            }
+        }
+    }
+}
+
 static void configure_stage(int stage_number)
 {
     stage_config.stage_number = stage_number;
 
-    if (stage_number == 1)
+    switch (stage_number)
     {
-        stage_config.total_waves = 2;
-        stage_config.enemies_per_wave = 3;
-        stage_config.wave_interval = 10.0f;
-    }
-    else if (stage_number == 2)
-    {
-        stage_config.total_waves = 3;
-        stage_config.enemies_per_wave = 4;
-        stage_config.wave_interval = 12.0f;
-    }
-    else if (stage_number == 3)
-    {
-        stage_config.total_waves = 3;
-        stage_config.enemies_per_wave = 5;
-        stage_config.wave_interval = 12.0f;
-    }
-    else if (stage_number == 4)
-    {
-        stage_config.total_waves = 4;
-        stage_config.enemies_per_wave = 6;
-        stage_config.wave_interval = 14.0f;
-    }
-    else if (stage_number == 5)
-    {
-        stage_config.total_waves = 4;
-        stage_config.enemies_per_wave = 8;
-        stage_config.wave_interval = 15.0f;
-    }
-    else
-    {
-        stage_config.total_waves = 4 + (stage_number / 3);
-        stage_config.enemies_per_wave = 8 + (stage_number - 5) * 2;
-        stage_config.wave_interval = 15.0f + (stage_number / 10) * 2.0f;
+        case 1:
+            stage_config.total_waves = 2;
+            stage_config.enemies_per_wave = 3;
+            stage_config.wave_interval = 10.0f;
+            break;
+
+        case 2:
+            stage_config.total_waves = 3;
+            stage_config.enemies_per_wave = 4;
+            stage_config.wave_interval = 12.0f;
+            break;
+
+        case 3:
+            stage_config.total_waves = 3;
+            stage_config.enemies_per_wave = 5;
+            stage_config.wave_interval = 12.0f;
+            break;
+
+        case 4:
+            stage_config.total_waves = 4;
+            stage_config.enemies_per_wave = 6;
+            stage_config.wave_interval = 14.0f;
+            break;
+
+        case 5:
+            stage_config.total_waves = 4;
+            stage_config.enemies_per_wave = 8;
+            stage_config.wave_interval = 15.0f;
+            break;
+
+        default:
+            stage_config.total_waves = 4 + (stage_number / 3);
+            stage_config.enemies_per_wave = 8 + (stage_number - 5) * 2;
+            stage_config.wave_interval = 15.0f + (stage_number / 10) * 2.0f;
+            break;
     }
 }
 
@@ -759,114 +864,47 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
         if (tutorial_active)
         {
-            if (tutorial_step == TUTORIAL_WELCOME ||
-                tutorial_step == TUTORIAL_VITAMINS_EXPLANATION ||
-                tutorial_step == TUTORIAL_DEFENDER_EXPLANATION ||
-                tutorial_step == TUTORIAL_ENEMY_EXPLANATION ||
-                tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION ||
-                tutorial_step == TUTORIAL_OBJECTIVE_EXPLANATION)
+            switch (tutorial_step)
             {
-                if (tutorial_step == TUTORIAL_WELCOME)
-                {
-                    tutorial_step = TUTORIAL_VITAMINS_EXPLANATION;
-                    tutorial_timer = 0.0f;
-                    orb_spawn_timer = 0.0f;
-                }
-                else if (tutorial_step == TUTORIAL_VITAMINS_EXPLANATION)
-                {
-                    tutorial_step = TUTORIAL_WAIT_ORB;
-                    tutorial_timer = 0.0f;
-                }
-                else if (tutorial_step == TUTORIAL_DEFENDER_EXPLANATION)
-                {
-                    tutorial_step = TUTORIAL_SELECT_DEFENDER;
-                    tutorial_timer = 0.0f;
-                }
-                else if (tutorial_step == TUTORIAL_ENEMY_EXPLANATION)
-                {
-                    tutorial_timer = 0.0f;
-                }
-                else if (tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION)
-                {
-                    tutorial_timer = 0.0f;
-                }
-                else if (tutorial_step == TUTORIAL_OBJECTIVE_EXPLANATION)
-                {
-                    tutorial_step = TUTORIAL_COMPLETE;
-                    tutorial_active = false;
-                    wave_timer = 0.0f;
-                    current_wave = 0;
-                    wave_active = false;
-                    enemies_spawned_in_wave = 0;
-                }
-                return;
-            }
-            else if (tutorial_step == TUTORIAL_COLLECT_ORB)
-            {
-                if (tutorial_orb_index >= 0 && orbs[tutorial_orb_index].active)
-                {
-                    float dx = mouse_x - orbs[tutorial_orb_index].x;
-                    float dy = mouse_y - orbs[tutorial_orb_index].y;
-                    float dist2 = dx * dx + dy * dy;
-                    if (dist2 < 20.0f * 20.0f)
-                    {
-                        vitamins += 75;
-                        orbs[tutorial_orb_index].active = false;
-                        spawn_particle_burst(orbs[tutorial_orb_index].x, orbs[tutorial_orb_index].y,
-                                             15, al_map_rgb(255, 215, 0));
-                        tutorial_step = TUTORIAL_DEFENDER_EXPLANATION;
-                        tutorial_timer = 0.0f;
-                        tutorial_orb_frozen = false;
-                        return;
-                    }
-                }
-                return;
-            }
-            else if (tutorial_step == TUTORIAL_SELECT_DEFENDER)
-            {
-                if (mouse_y < SELECTOR_HEIGHT)
-                {
-                    int selector_width = 100;
-                    int start_x = 10;
+                case TUTORIAL_WELCOME:
+                    handle_welcome_step();
+                    return;
 
-                    for (int i = 0; i < in_use_count; i++)
-                    {
-                        int x1 = start_x + i * (selector_width + 10);
-                        int x2 = x1 + selector_width;
-                        if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 &&
-                            mouse_y <= SELECTOR_HEIGHT - 10)
-                        {
-                            if (vitamins >= defender_costs[i])
-                            {
-                                selected_defender_slot = i;
-                                tutorial_step = TUTORIAL_PLACE_DEFENDER;
-                                tutorial_timer = 0.0f;
-                            }
-                            break;
-                        }
-                    }
-                }
-                return;
-            }
-            else if (tutorial_step == TUTORIAL_PLACE_DEFENDER)
-            {
-                if (mouse_y >= GRID_START_Y)
-                {
-                    int col = (int)(mouse_x / (cell_width + 1.0f));
-                    int row = (int)((mouse_y - GRID_START_Y) / cell_height);
+                case TUTORIAL_VITAMINS_EXPLANATION:
+                    handle_vitamins_step();
+                    return;
 
-                    if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS)
-                    {
-                        if (selected_defender_slot != -1)
-                        {
-                            add_defender(row, col, selected_defender_slot);
-                        }
-                    }
-                }
-                return;
-            }
+                case TUTORIAL_DEFENDER_EXPLANATION:
+                    handle_defender_explanation();
+                    return;
 
-            return;
+                case TUTORIAL_ENEMY_EXPLANATION:
+                    handle_enemy_explanation();
+                    return;
+
+                case TUTORIAL_PROJECTILE_EXPLANATION:
+                    handle_projectile_explanation();
+                    return;
+
+                case TUTORIAL_OBJECTIVE_EXPLANATION:
+                    handle_objective_explanation();
+                    return;
+
+                case TUTORIAL_COLLECT_ORB:
+                    handle_collect_orb(mouse_x, mouse_y);
+                    return;
+
+                case TUTORIAL_SELECT_DEFENDER:
+                    handle_select_defender(mouse_x, mouse_y);
+                    return;
+
+                case TUTORIAL_PLACE_DEFENDER:
+                    handle_place_defender(mouse_x, mouse_y);
+                    return;
+
+                default:
+                    return;
+            }
         }
 
         for (int i = 0; i < MAX_ORBS; i++)
