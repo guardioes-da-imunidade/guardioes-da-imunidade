@@ -28,7 +28,7 @@ $(TARGET): $(SRC)
 
 # Build para debug
 debug: $(SRC)
-	$(CC) $(DEBUG_FLAGS) $(SRC) -o $(BUILD_DIR)/$(TARGET) $(LIBS)
+	$(CC) $(DEBUG_FLAGS) $(SRC) -o $(BUILD_DIR)/$(TARGET) $(LIBS) -lm
 
 # Limpa arquivos gerados
 clean:
