@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include "../../core/game.h"
-#include "../../entities/player/player-entity.h"
+#include "../../entities/player/player.h"
 #include "../base/menu.h"
 #include "../endless_mode_screen/endless_mode_screen.h"
 #include "../stage_screen/stage_screen.h"
@@ -161,10 +161,7 @@ static void draw_level_connections(void)
                  connection_color, line_thickness);
 }
 
-static bool is_level_unlocked(int level_number)
-{
-    return level_number <= PLAYER_ENTITY->current_stage;
-}
+static bool is_level_unlocked(int level_number) { return level_number <= Player->current_stage; }
 
 static void draw_level_nodes(void)
 {
@@ -366,6 +363,9 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         if (mx >= col_x1 && mx <= col_x2 && my >= col_y1 && my <= col_y2)
         {
             printf("Coleção\n");
+            current_screen->destroy();
+            current_screen = &Bestiary;
+            current_screen->init(NULL);
         }
 
         int sf_x1 = 100;
@@ -374,7 +374,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         int sf_y2 = 510;
         if (mx >= sf_x1 && mx <= sf_x2 && my >= sf_y1 && my <= sf_y2)
         {
-            if (PLAYER_ENTITY && PLAYER_ENTITY->current_stage == 1)
+            if (Player && Player->current_stage == 1)
             {
                 show_tutorial_modal = true;
                 return;
@@ -450,7 +450,7 @@ static void draw(int screen_width, int screen_height)
         al_draw_circle(circle_x, circle_y, radius, black, 3);
 
         char vaccines_text[10];
-        snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
+        snprintf(vaccines_text, sizeof(vaccines_text), "%d", Player->vaccines);
         al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
 
         al_draw_filled_rectangle(0, 0, 1280, 720, al_map_rgba(0, 0, 0, 180));
@@ -522,18 +522,6 @@ static void draw(int screen_width, int screen_height)
         al_draw_text(font, al_map_rgb(255, 255, 255), 1130, 655, ALLEGRO_ALIGN_CENTRE,
                      "Ver Cutscene");
 
-        ALLEGRO_COLOR blue = al_map_rgb(135, 206, 250);
-        ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
-        float circle_x = 1240;
-        float circle_y = 50;
-        float radius = 25;
-        al_draw_filled_circle(circle_x, circle_y, radius, blue);
-        al_draw_circle(circle_x, circle_y, radius, black, 3);
-
-        char vaccines_text[10];
-        snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
-        al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
-
         return;
     }
 
@@ -541,18 +529,7 @@ static void draw(int screen_width, int screen_height)
         al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
                               al_get_bitmap_height(background), 0, 0, 1280, 720, 0);
 
-    ALLEGRO_COLOR blue = al_map_rgb(135, 206, 250);
-    ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
-
-    float circle_x = 1240;
-    float circle_y = 50;
-    float radius = 25;
-    al_draw_filled_circle(circle_x, circle_y, radius, blue);
-    al_draw_circle(circle_x, circle_y, radius, black, 3);
-
-    char vaccines_text[10];
-    snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
-    al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
+    draw_vaccines_count(screen_width, screen_height);
 }
 
 static void destroy(void)

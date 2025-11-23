@@ -11,7 +11,7 @@
 #include <time.h>
 
 #include "../../core/game.h"
-#include "../../entities/player/player-entity.h"
+#include "../../entities/player/player.h"
 #include "../base/menu.h"
 #include "../lobby_screen/lobby_screen.h"
 
@@ -19,9 +19,6 @@ extern GameState current_game_state;
 extern Screen* current_screen;
 
 static ALLEGRO_BITMAP* background = NULL;
-static ALLEGRO_BITMAP* defender_images[MAX_IN_USE_SLOTS] = {NULL, NULL, NULL};
-static int defender_w[MAX_IN_USE_SLOTS] = {0, 0, 0};
-static int defender_h[MAX_IN_USE_SLOTS] = {0, 0, 0};
 static ALLEGRO_BITMAP* enemy_images[3] = {NULL, NULL, NULL};
 static int enemy_w[3] = {0, 0, 0};
 static int enemy_h[3] = {0, 0, 0};
@@ -36,20 +33,6 @@ static int enemy_h[3] = {0, 0, 0};
 #define MAX_PROJECTILES 100
 #define MAX_PARTICLES 200
 #define MAX_ORBS 60
-
-typedef enum
-{
-    ENEMY_VIRUS = 0,
-    ENEMY_PARASITE = 1,
-    ENEMY_BACTERIUM = 2
-} EnemyType;
-
-typedef enum
-{
-    PROJECTILE_WHITE_BALL = 0,
-    PROJECTILE_BLUE_MAGIC = 1,
-    PROJECTILE_RED_LASER = 2
-} ProjectileType;
 
 typedef enum
 {
@@ -90,26 +73,6 @@ typedef struct
 
 typedef struct
 {
-    int row;
-    int col;
-    int defender_slot;
-    float shoot_timer;
-    bool active;
-} Defender;
-
-typedef struct
-{
-    float x;
-    float y;
-    int row;
-    EnemyType type;
-    float speed;
-    bool active;
-    int health;
-} Enemy;
-
-typedef struct
-{
     float x;
     float y;
     int row;
@@ -134,9 +97,7 @@ static Defender defenders[MAX_DEFENDERS];
 static Enemy enemies[MAX_ENEMIES];
 static Projectile projectiles[MAX_PROJECTILES];
 
-static int selected_defender_slot = -1;
-static int in_use_defenders[MAX_IN_USE_SLOTS];
-static int in_use_count = 0;
+static int selected_defender = -1;
 
 static float placement_cooldown = 0.0f;
 static float delta_time = 1.0f / 60.0f;
@@ -159,16 +120,6 @@ static ALLEGRO_FONT* font = NULL;
 static ALLEGRO_FONT* title_font = NULL;
 static ALLEGRO_FONT* tutorial_font = NULL;
 
-static const int defender_costs[3] = {50, 75, 100};
-static const int defender_damage[3] = {1, 3, 5};
-static const float defender_shoot_cooldown[3] = {3.0f, 2.5f, 2.0f};
-static const char* defender_paths[10] = {
-    "assets/images/defenders/white_blood_cell.png", "assets/images/defenders/eosinophil.png",
-    "assets/images/defenders/basophil.png",         "assets/images/defenders/defender_3.png",
-    "assets/images/defenders/defender_4.png",       "assets/images/defenders/defender_5.png",
-    "assets/images/defenders/defender_6.png",       "assets/images/defenders/defender_7.png",
-    "assets/images/defenders/defender_8.png",       "assets/images/defenders/defender_9.png"};
-
 static StageConfig stage_config;
 static double last_time = 0.0;
 
@@ -188,25 +139,15 @@ static void add_defender(int row, int col, int defender_slot);
 
 static void init_arrays(void)
 {
-    for (int i = 0; i < MAX_DEFENDERS; i++) defenders[i].active = false;
-    for (int i = 0; i < MAX_ENEMIES; i++) enemies[i].active = false;
+    for (int i = 0; i < MAX_DEFENDERS; i++) defenders[i].base.active = false;
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        memset(&enemies[i], 0, sizeof(enemies[i]));
+        enemies[i].base.active = false;
+    }
     for (int i = 0; i < MAX_PROJECTILES; i++) projectiles[i].active = false;
     for (int i = 0; i < MAX_PARTICLES; i++) particles[i].life = 0.0f;
     for (int i = 0; i < MAX_ORBS; i++) orbs[i].active = false;
-}
-
-static void load_in_use_defenders(void)
-{
-    in_use_count = 0;
-    for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
-    {
-        int defender_id = PLAYER_ENTITY->in_use_slots[i];
-        if (defender_id >= 0 && defender_id < 10 && PLAYER_ENTITY->defenders[defender_id].unlocked)
-        {
-            in_use_defenders[in_use_count] = defender_id;
-            in_use_count++;
-        }
-    }
 }
 
 static void handle_welcome_step(void)
@@ -273,16 +214,21 @@ static void handle_select_defender(int mouse_x, int mouse_y)
         int selector_width = 100;
         int start_x = 10;
 
-        for (int i = 0; i < in_use_count; i++)
+        for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
         {
+            const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
+
+            if (!defender)
+                continue;
+
             int x1 = start_x + i * (selector_width + 10);
             int x2 = x1 + selector_width;
 
             if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 && mouse_y <= SELECTOR_HEIGHT - 10)
             {
-                if (vitamins >= defender_costs[i])
+                if (vitamins >= defender->cost_to_place)
                 {
-                    selected_defender_slot = i;
+                    selected_defender = defender->base.id;
                     tutorial_step = TUTORIAL_PLACE_DEFENDER;
                     tutorial_timer = 0.0f;
                 }
@@ -301,9 +247,9 @@ static void handle_place_defender(int mouse_x, int mouse_y)
 
         if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS)
         {
-            if (selected_defender_slot != -1)
+            if (selected_defender != -1)
             {
-                add_defender(row, col, selected_defender_slot);
+                add_defender(row, col, selected_defender);
             }
         }
     }
@@ -430,24 +376,6 @@ static void spawn_orb(void)
 
 static void load_images(void)
 {
-    for (int i = 0; i < in_use_count && i < MAX_IN_USE_SLOTS; i++)
-    {
-        int defender_id = in_use_defenders[i];
-        if (defender_id >= 0 && defender_id < 10)
-        {
-            defender_images[i] = al_load_bitmap(defender_paths[defender_id]);
-            if (defender_images[i])
-            {
-                defender_w[i] = al_get_bitmap_width(defender_images[i]);
-                defender_h[i] = al_get_bitmap_height(defender_images[i]);
-            }
-            else
-            {
-                defender_w[i] = defender_h[i] = 0;
-            }
-        }
-    }
-
     enemy_images[0] = al_load_bitmap("assets/images/enemies/virus.png");
     enemy_images[1] = al_load_bitmap("assets/images/enemies/parasite.png");
     enemy_images[2] = al_load_bitmap("assets/images/enemies/bacterium.png");
@@ -473,20 +401,21 @@ static void spawn_wave_enemy(int screen_width)
 
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (!enemies[i].active)
+        if (!enemies[i].base.active)
         {
-            enemies[i].active = true;
-            enemies[i].row = rand() % GRID_ROWS;
+            enemies[i].base.active = true;
+            enemies[i].base.row = rand() % GRID_ROWS;
             enemies[i].type = rand() % 3;
-            enemies[i].x = (float)screen_width;
-            enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2.0f;
+            enemies[i].base.x = (float)screen_width;
+            enemies[i].base.y =
+                GRID_START_Y + enemies[i].base.row * cell_height + cell_height / 2.0f;
 
             float base_speed = 30.0f + (stage_config.stage_number * 3.0f);
             if (stage_config.stage_number == 1)
                 base_speed = 25.0f;
 
-            enemies[i].speed = base_speed;
-            enemies[i].health = 2 + (stage_config.stage_number / 2);
+            enemies[i].base.speed = base_speed;
+            enemies[i].base.health = 2 + (stage_config.stage_number / 2);
             enemies_spawned_in_wave++;
             break;
         }
@@ -497,50 +426,55 @@ static void spawn_tutorial_enemy(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (!enemies[i].active)
+        if (!enemies[i].base.active)
         {
-            enemies[i].active = true;
-            enemies[i].row = tutorial_defender_row;
-            enemies[i].type = ENEMY_VIRUS;
-            enemies[i].x = (float)screen_width_cached;
-            enemies[i].y = GRID_START_Y + enemies[i].row * cell_height + cell_height / 2.0f;
-            enemies[i].speed = 25.0f;
-            enemies[i].health = 1;
+            enemies[i].base.active = true;
+            enemies[i].base.row = tutorial_defender_row;
+            enemies[i].type = 0;  // TODO (resolvendo conflitos): Atualmente é fixo para o primeiro
+                                  // inimigo ser o Vírus antes era rand() % 3, arrumar uma forma
+                                  // mais inteligente de associar tipos a inimigos.
+            enemies[i].base.x = (float)screen_width_cached;
+            enemies[i].base.y =
+                GRID_START_Y + enemies[i].base.row * cell_height + cell_height / 2.0f;
+            enemies[i].base.speed = 25.0f;
+            enemies[i].base.health = 1;
             break;
         }
     }
 }
 
-static void add_defender(int row, int col, int defender_slot)
+static void add_defender(int row, int col, int defender_id)
 {
-    if (placement_cooldown > 0.0f)
+    const Defender* defender = get_equipped_defender(defender_id);
+
+    if (!defender || placement_cooldown > 0.0f)
         return;
 
-    if (defender_slot < 0 || defender_slot >= in_use_count)
-        return;
+    int cost = defender->cost_to_place;
 
-    int cost = defender_costs[defender_slot];
     if (vitamins < cost)
         return;
 
     for (int i = 0; i < MAX_DEFENDERS; i++)
     {
-        if (defenders[i].active && defenders[i].row == row && defenders[i].col == col)
+        if (defenders[i].base.active && defenders[i].base.row == row &&
+            defenders[i].base.col == col)
             return;
     }
 
     for (int i = 0; i < MAX_DEFENDERS; i++)
     {
-        if (!defenders[i].active)
+        if (!defenders[i].base.active)
         {
-            defenders[i].active = true;
-            defenders[i].row = row;
-            defenders[i].col = col;
-            defenders[i].defender_slot = defender_slot;
-            defenders[i].shoot_timer = 0.0f;
+            defenders[i].base.active = true;
+            defenders[i].base.row = row;
+            defenders[i].base.col = col;
+            defenders[i].base.speed = 0.0f;
+            defenders[i].base.id = defender_id;
+
             placement_cooldown = 1.0f;
             vitamins -= cost;
-            selected_defender_slot = -1;
+            selected_defender = -1;
 
             if (tutorial_active && tutorial_step == TUTORIAL_PLACE_DEFENDER)
             {
@@ -554,28 +488,28 @@ static void add_defender(int row, int col, int defender_slot)
     }
 }
 
-static void shoot_projectile(int row, int col, int defender_slot)
+static void shoot_projectile(int row, int col, int defender_id)
 {
-    if (defender_slot < 0 || defender_slot >= 3)
-        return;
-
     for (int i = 0; i < MAX_PROJECTILES; i++)
     {
         if (!projectiles[i].active)
         {
+            const Defender* defender = get_equipped_defender(defender_id);
+
             projectiles[i].active = true;
             projectiles[i].row = row;
             projectiles[i].x = col * (cell_width + 1.0f) + cell_width;
             projectiles[i].y = GRID_START_Y + row * cell_height + cell_height / 2.0f;
             projectiles[i].animation_time = 0.0f;
-            projectiles[i].damage = defender_damage[defender_slot];
+            projectiles[i].damage = defender->base.attack;
 
-            if (defender_slot == 0)
+            // TODO: Armazenar o tipo de projétil diretamente na definição do defensor na struct
+            if (defender_id == 0)
             {
                 projectiles[i].type = PROJECTILE_WHITE_BALL;
                 projectiles[i].speed = 180.0f;
             }
-            else if (defender_slot == 1)
+            else if (defender_id == 1)
             {
                 projectiles[i].type = PROJECTILE_BLUE_MAGIC;
                 projectiles[i].speed = 240.0f;
@@ -602,26 +536,27 @@ static void check_enemy_defender_collision(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (enemies[i].active)
+        if (enemies[i].base.active)
         {
             for (int j = 0; j < MAX_DEFENDERS; j++)
             {
-                if (defenders[j].active && defenders[j].row == enemies[i].row)
+                if (defenders[j].base.active && defenders[j].base.row == enemies[i].base.row)
                 {
-                    float defender_x = defenders[j].col * (cell_width + 1.0f) + cell_width / 2.0f;
+                    float defender_x =
+                        defenders[j].base.col * (cell_width + 1.0f) + cell_width / 2.0f;
                     float defender_y =
-                        GRID_START_Y + defenders[j].row * cell_height + cell_height / 2.0f;
-                    float dx = enemies[i].x - defender_x;
-                    float dy = enemies[i].y - defender_y;
+                        GRID_START_Y + defenders[j].base.row * cell_height + cell_height / 2.0f;
+                    float dx = enemies[i].base.x - defender_x;
+                    float dy = enemies[i].base.y - defender_y;
                     float dist2 = dx * dx + dy * dy;
 
                     if (dist2 < 40.0f * 40.0f)
                     {
-                        spawn_particle_burst(enemies[i].x, enemies[i].y, 20,
+                        spawn_particle_burst(enemies[i].base.x, enemies[i].base.y, 20,
                                              al_map_rgb(255, 100, 100));
                         spawn_particle_burst(defender_x, defender_y, 20, al_map_rgb(200, 50, 50));
-                        defenders[j].active = false;
-                        enemies[i].active = false;
+                        defenders[j].base.active = false;
+                        enemies[i].base.active = false;
                         break;
                     }
                 }
@@ -634,20 +569,26 @@ static void update_defenders(void)
 {
     for (int i = 0; i < MAX_DEFENDERS; i++)
     {
-        if (defenders[i].active)
+        if (defenders[i].base.active)
         {
-            defenders[i].shoot_timer += delta_time;
+            const Defender* defender = get_equipped_defender(defenders[i].base.id);
 
-            int slot = defenders[i].defender_slot;
-            float cooldown = (slot >= 0 && slot < 3) ? defender_shoot_cooldown[slot] : 3.0f;
+            if (!defender)
+                continue;
 
-            if (defenders[i].shoot_timer >= cooldown)
+            defenders[i].base.speed += delta_time;
+
+            float cooldown = (defender->base.id >= 0 && defender->base.id < 3)
+                                 ? defender->base.attack_cooldown
+                                 : 3.0f;
+
+            if (defenders[i].base.speed >= cooldown)
             {
                 bool enemy_in_row = false;
 
                 for (int j = 0; j < MAX_ENEMIES; j++)
                 {
-                    if (enemies[j].active && enemies[j].row == defenders[i].row)
+                    if (enemies[j].base.active && enemies[j].base.row == defenders[i].base.row)
                     {
                         enemy_in_row = true;
                         break;
@@ -656,11 +597,11 @@ static void update_defenders(void)
 
                 if (enemy_in_row)
                 {
-                    shoot_projectile(defenders[i].row, defenders[i].col,
-                                     defenders[i].defender_slot);
+                    shoot_projectile(defenders[i].base.row, defenders[i].base.col,
+                                     defender->base.id);
                 }
 
-                defenders[i].shoot_timer = 0.0f;
+                defenders[i].base.speed = 0.0f;
             }
         }
     }
@@ -670,13 +611,13 @@ static void update_enemies(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (enemies[i].active)
+        if (enemies[i].base.active)
         {
-            enemies[i].x -= enemies[i].speed * delta_time;
+            enemies[i].base.x -= enemies[i].base.speed * delta_time;
 
-            if (enemies[i].x < -50.0f)
+            if (enemies[i].base.x < -50.0f)
             {
-                enemies[i].active = false;
+                enemies[i].base.active = false;
 
                 if (!tutorial_active)
                 {
@@ -704,17 +645,17 @@ static void update_projectiles(int screen_width)
 
             for (int j = 0; j < MAX_ENEMIES; j++)
             {
-                if (enemies[j].active && enemies[j].row == projectiles[i].row)
+                if (enemies[j].base.active && enemies[j].base.row == projectiles[i].row)
                 {
-                    float dist = fabs(projectiles[i].x - enemies[j].x);
+                    float dist = fabs(projectiles[i].x - enemies[j].base.x);
                     if (dist < 30.0f)
                     {
-                        enemies[j].health -= projectiles[i].damage;
-                        if (enemies[j].health <= 0)
+                        enemies[j].base.health -= projectiles[i].damage;
+                        if (enemies[j].base.health <= 0)
                         {
-                            spawn_particle_burst(enemies[j].x, enemies[j].y, 25,
+                            spawn_particle_burst(enemies[j].base.x, enemies[j].base.y, 25,
                                                  al_map_rgb(255, 200, 50));
-                            enemies[j].active = false;
+                            enemies[j].base.active = false;
                             enemies_killed_this_stage++;
 
                             if (tutorial_active && tutorial_step == TUTORIAL_PROJECTILE_EXPLANATION)
@@ -780,7 +721,7 @@ static bool check_all_enemies_defeated(void)
 {
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (enemies[i].active)
+        if (enemies[i].base.active)
             return false;
     }
     return true;
@@ -791,7 +732,6 @@ static void init(ALLEGRO_DISPLAY* display)
     current_game_state = GAME_PLAYING;
     srand((unsigned int)time(NULL));
     init_arrays();
-    load_in_use_defenders();
 
     game_time = 0.0f;
     vitamins = 200;
@@ -840,11 +780,11 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         {
             if (stage_complete)
             {
-                PLAYER_ENTITY->vaccines += enemies_killed_this_stage;
+                Player->vaccines += enemies_killed_this_stage;
 
-                if (PLAYER_ENTITY->current_stage == stage_config.stage_number)
+                if (Player->current_stage == stage_config.stage_number)
                 {
-                    PLAYER_ENTITY->current_stage++;
+                    Player->current_stage++;
                 }
             }
 
@@ -929,20 +869,26 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             int selector_width = 100;
             int start_x = 10;
 
-            for (int i = 0; i < in_use_count; i++)
+            for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
+                const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
+
+                if (!defender)
+                    continue;
+
                 int x1 = start_x + i * (selector_width + 10);
                 int x2 = x1 + selector_width;
                 if (mouse_x >= x1 && mouse_x <= x2 && mouse_y >= 10 &&
                     mouse_y <= SELECTOR_HEIGHT - 10)
                 {
-                    if (vitamins >= defender_costs[i])
-                        selected_defender_slot = i;
+                    if (vitamins >= defender->cost_to_place)
+                        selected_defender = defender->base.id;
                     else
-                        selected_defender_slot = -1;
+                        selected_defender = -1;
                     break;
                 }
             }
+
             return;
         }
 
@@ -953,8 +899,8 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
             if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS)
             {
-                if (selected_defender_slot != -1)
-                    add_defender(row, col, selected_defender_slot);
+                if (selected_defender != -1)
+                    add_defender(row, col, selected_defender);
             }
         }
     }
@@ -1118,18 +1064,23 @@ static void draw_game_elements(int screen_width, int screen_height)
     int selector_width = 100;
     int start_x = 10;
 
-    for (int i = 0; i < in_use_count; i++)
+    for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
     {
+        const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
+
+        if (!defender)
+            continue;
+
         int x1 = start_x + i * (selector_width + 10);
         int x2 = x1 + selector_width;
         ALLEGRO_COLOR color;
         ALLEGRO_COLOR border_color;
         ALLEGRO_COLOR text_color;
 
-        if (vitamins >= defender_costs[i])
+        if (vitamins >= defender->cost_to_place)
         {
-            color = (selected_defender_slot == i) ? al_map_rgba(0, 255, 0, 180)
-                                                  : al_map_rgba(80, 80, 80, 150);
+            color = (selected_defender == defender->base.id) ? al_map_rgba(0, 255, 0, 180)
+                                                             : al_map_rgba(80, 80, 80, 150);
             border_color = al_map_rgb(255, 255, 255);
             text_color = al_map_rgb(255, 215, 0);
         }
@@ -1143,14 +1094,14 @@ static void draw_game_elements(int screen_width, int screen_height)
         al_draw_filled_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, color);
         al_draw_rectangle(x1, 10, x2, SELECTOR_HEIGHT - 10, border_color, 2.0f);
 
-        if (defender_images[i])
+        if (defender)
         {
-            al_draw_scaled_bitmap(defender_images[i], 0, 0, defender_w[i], defender_h[i], x1 + 35,
-                                  15, 35, 35, 0);
+            al_draw_scaled_bitmap(defender->base.image, 0, 0, defender->base.image_width,
+                                  defender->base.image_height, x1 + 35, 15, 35, 35, 0);
         }
 
         char cost_text[16];
-        sprintf(cost_text, "C:%d", defender_costs[i]);
+        sprintf(cost_text, "C:%d", defender->cost_to_place);
         if (font)
             al_draw_text(font, text_color, x1 + 50, 50, ALLEGRO_ALIGN_CENTER, cost_text);
     }
@@ -1181,33 +1132,35 @@ static void draw_game_elements(int screen_width, int screen_height)
 
     for (int i = 0; i < MAX_DEFENDERS; i++)
     {
-        if (defenders[i].active)
+        if (defenders[i].base.active)
         {
-            int slot = defenders[i].defender_slot;
-            if (slot >= 0 && slot < in_use_count && defender_images[slot])
-            {
-                float x = defenders[i].col * (cell_width + 1.0f);
-                float y = GRID_START_Y + defenders[i].row * cell_height;
-                float scale =
-                    (defender_w[slot] > 0) ? (cell_width * 0.8f) / (float)defender_w[slot] : 1.0f;
-                float img_w = defender_w[slot] * scale;
-                float img_h = defender_h[slot] * scale;
+            const Defender* defender = get_equipped_defender(defenders[i].base.id);
 
-                al_draw_scaled_bitmap(defender_images[slot], 0, 0, defender_w[slot],
-                                      defender_h[slot], x + (cell_width - img_w) / 2.0f,
-                                      y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
-            }
+            if (!defender)
+                continue;
+
+            float x = defenders[i].base.col * (cell_width + 1.0f);
+            float y = GRID_START_Y + defenders[i].base.row * cell_height;
+            float scale = (defender->base.image_width > 0)
+                              ? (cell_width * 0.8f) / defender->base.image_width
+                              : 1.0f;
+            float img_w = defender->base.image_width * scale;
+            float img_h = defender->base.image_height * scale;
+
+            al_draw_scaled_bitmap(defender->base.image, 0, 0, defender->base.image_width,
+                                  defender->base.image_height, x + (cell_width - img_w) / 2.0f,
+                                  y + (cell_height - 10.0f - img_h) / 2.0f, img_w, img_h, 0);
         }
     }
 
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
-        if (enemies[i].active && enemy_images[enemies[i].type])
+        if (enemies[i].base.active && enemy_images[enemies[i].type])
         {
             float size = 60.0f;
             al_draw_scaled_bitmap(enemy_images[enemies[i].type], 0, 0, enemy_w[enemies[i].type],
-                                  enemy_h[enemies[i].type], enemies[i].x - size / 2.0f,
-                                  enemies[i].y - size / 2.0f, size, size, 0);
+                                  enemy_h[enemies[i].type], enemies[i].base.x - size / 2.0f,
+                                  enemies[i].base.y - size / 2.0f, size, size, 0);
         }
     }
 
@@ -1318,8 +1271,13 @@ static void draw(int screen_width, int screen_height)
             int selector_width = 100;
             int start_x = 10;
 
-            for (int i = 0; i < in_use_count; i++)
+            for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
+                const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
+
+                if (!defender)
+                    continue;
+
                 int x1 = start_x + i * (selector_width + 10);
                 int x2 = x1 + selector_width;
                 al_draw_rectangle(x1 - 5, 5, x2 + 5, SELECTOR_HEIGHT - 5, al_map_rgb(0, 255, 0),
@@ -1466,10 +1424,10 @@ static void draw(int screen_width, int screen_height)
 
                 for (int i = 0; i < MAX_ENEMIES; i++)
                 {
-                    if (enemies[i].active)
+                    if (enemies[i].base.active)
                     {
-                        enemy_x = enemies[i].x;
-                        enemy_y = enemies[i].y;
+                        enemy_x = enemies[i].base.x;
+                        enemy_y = enemies[i].base.y;
                         enemy_found = true;
                         al_draw_circle(enemy_x, enemy_y, 50.0f, al_map_rgb(255, 100, 100), 4.0f);
                         al_draw_circle(enemy_x, enemy_y, 60.0f, al_map_rgba(255, 100, 100, 150),
@@ -1602,16 +1560,6 @@ static void destroy(void)
     {
         al_destroy_font(tutorial_font);
         tutorial_font = NULL;
-    }
-
-    for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
-    {
-        if (defender_images[i])
-        {
-            al_destroy_bitmap(defender_images[i]);
-            defender_images[i] = NULL;
-            defender_w[i] = defender_h[i] = 0;
-        }
     }
 
     for (int i = 0; i < 3; i++)

@@ -3,17 +3,27 @@ TARGET = game
 SRC = main.c \
     src/core/init.c \
     src/core/game.c \
+	src/core/palette.c \
+	src/core/typography.c \
+	src/core/input.c \
+	src/core/ui/button.c \
+	src/core/ui/vaccines.c \
+	\
     src/screens/base/menu.c \
     src/screens/base/config.c \
+	src/screens/bestiary/bestiary.c \
     src/screens/game_screen/game_screen.c \
+	src/screens/lobby_screen/lobby_screen.c \
+	src/screens/endless_mode_screen/endless_mode_screen.c \
+	src/screens/stage_screen/stage_screen.c \
+	\
 	src/systems/sound_effect.c \
 	src/systems/music.c \
 	src/systems/global_audio.c \
-	src/screens/lobby_screen/lobby_screen.c \
     src/systems/resource.c \
-	src/entities/player/player-entity.c \
-	src/screens/endless_mode_screen/endless_mode_screen.c \
-	src/screens/stage_screen/stage_screen.c
+	\
+	src/entities/entities.c \
+	src/entities/player/player.c
 
 CC = gcc
 

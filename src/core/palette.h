@@ -1,0 +1,18 @@
+#ifndef PALETTE_H
+#define PALETTE_H
+
+#include <allegro5/allegro_color.h>
+
+extern ALLEGRO_COLOR COLOR_BLACK;
+extern ALLEGRO_COLOR COLOR_WHITE;
+extern ALLEGRO_COLOR COLOR_GRAY;
+extern ALLEGRO_COLOR COLOR_RED;
+extern ALLEGRO_COLOR COLOR_GREEN;
+extern ALLEGRO_COLOR COLOR_BLUE;
+extern ALLEGRO_COLOR COLOR_YELLOW;
+
+extern ALLEGRO_COLOR COLOR_TRANSPARENT;
+
+void init_colors();
+
+#endif
