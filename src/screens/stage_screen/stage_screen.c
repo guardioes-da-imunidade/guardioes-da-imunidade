@@ -1273,6 +1273,11 @@ static void draw(int screen_width, int screen_height)
 
             for (int i = 0; i < MAX_IN_USE_SLOTS; i++)
             {
+                const Defender* defender = get_equipped_defender(Player->in_use_slots[i]);
+
+                if (!defender)
+                    continue;
+
                 int x1 = start_x + i * (selector_width + 10);
                 int x2 = x1 + selector_width;
                 al_draw_rectangle(x1 - 5, 5, x2 + 5, SELECTOR_HEIGHT - 5, al_map_rgb(0, 255, 0),
