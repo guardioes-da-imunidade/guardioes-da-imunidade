@@ -1,0 +1,67 @@
+#ifndef ENTITY_H
+#define ENTITY_H
+
+#include <allegro5/allegro.h>
+#include <allegro5/allegro_image.h>
+#include <stdio.h>
+
+typedef enum
+{
+    PROJECTILE_WHITE_BALL = 0,
+    PROJECTILE_BLUE_MAGIC = 1,
+    PROJECTILE_RED_LASER = 2
+} ProjectileType;
+
+typedef struct
+{
+    int id;
+    const char* name;
+    const char* description;
+    int health;
+    float speed;
+    int attack;
+    int defense;
+    float attack_cooldown;
+    bool active;
+    int row;
+    int col;
+    float x;
+    float y;
+    ProjectileType projectile_type;
+    const char* image_path;
+    ALLEGRO_BITMAP* image;
+    int image_width;
+    int image_height;
+} Entity;
+
+typedef struct
+{
+    Entity base;
+    int cost_to_place;
+    int cost_to_unlock;
+} Defender;
+
+typedef struct
+{
+    Entity base;
+    bool is_boss;
+    int type;
+} Enemy;
+
+typedef struct
+{
+    bool is_defender;
+    Entity* entity;
+} Microorganism;
+
+extern Microorganism microorganisms[];
+
+void load_entities();
+
+const Defender* get_defender_by_id(int index);
+
+int get_defenders_count();
+int get_enemies_count();
+int get_entities_count();
+
+#endif

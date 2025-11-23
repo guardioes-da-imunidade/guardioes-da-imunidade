@@ -1,24 +1,29 @@
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_native_dialog.h>
-#include <allegro5/allegro_audio.h>
-#include <allegro5/allegro_acodec.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 #include "src/core/game.h"
 #include "src/core/init.h"
-#include "src/entities/player/player-entity.h"
+#include "src/core/input.h"
+#include "src/core/palette.h"
+#include "src/core/typography.h"
+#include "src/entities/player/player.h"
 #include "src/screens/base/menu.h"
 
 Screen *current_screen = &MenuScreen;
-PlayerEntity *PLAYER_ENTITY = NULL;
+PlayerEntity* Player = NULL;
 
 int main()
 {
     int screen_width, screen_height;
 
     ALLEGRO_DISPLAY *display = init_allegro(&screen_width, &screen_height);
+
+    init_fonts();
+    init_colors();
+    load_entities();
 
     ALLEGRO_TIMER *timer = al_create_timer(1.0 / 60.0);
     ALLEGRO_EVENT_QUEUE *event_queue = al_create_event_queue();
@@ -37,20 +42,31 @@ int main()
 
     while (running)
     {
-        ALLEGRO_EVENT current_event;
-        while (al_get_next_event(event_queue, &current_event))
+        ALLEGRO_EVENT event;
+        while (al_get_next_event(event_queue, &event))
         {
-            current_screen->update(&current_event, &running);
+            if (event.type == ALLEGRO_EVENT_DISPLAY_RESIZE)
+            {
+                al_acknowledge_resize(event.display.source);
+
+                screen_width = event.display.width;
+                screen_height = event.display.height;
+            }
+
+            input_update(&event);
+            current_screen->update(&event, &running);
         }
 
         al_clear_to_color(al_map_rgb(0, 0, 0));
         current_screen->draw(screen_width, screen_height);
         al_flip_display();
+
+        reset_mouse_click();
     }
 
     current_screen->destroy();
 
-    free(PLAYER_ENTITY);
+    free(Player);
     al_destroy_display(display);
     al_destroy_event_queue(event_queue);
     al_destroy_timer(timer);
