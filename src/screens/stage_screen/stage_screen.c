@@ -228,7 +228,7 @@ static void handle_select_defender(int mouse_x, int mouse_y)
             {
                 if (vitamins >= defender->cost_to_place)
                 {
-                    selected_defender = i;
+                    selected_defender = defender->base.id;
                     tutorial_step = TUTORIAL_PLACE_DEFENDER;
                     tutorial_timer = 0.0f;
                 }
@@ -1079,8 +1079,8 @@ static void draw_game_elements(int screen_width, int screen_height)
 
         if (vitamins >= defender->cost_to_place)
         {
-            color = (selected_defender == i) ? al_map_rgba(0, 255, 0, 180)
-                                             : al_map_rgba(80, 80, 80, 150);
+            color = (selected_defender == defender->base.id) ? al_map_rgba(0, 255, 0, 180)
+                                                             : al_map_rgba(80, 80, 80, 150);
             border_color = al_map_rgb(255, 255, 255);
             text_color = al_map_rgb(255, 215, 0);
         }
