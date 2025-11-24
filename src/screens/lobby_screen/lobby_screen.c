@@ -14,6 +14,9 @@
 #include "../base/menu.h"
 #include "../endless_mode_screen/endless_mode_screen.h"
 #include "../stage_screen/stage_screen.h"
+#include "../../systems/global_audio.h"
+#include "../../systems/music.h"
+#include "../../systems/sound_effect.h"
 
 extern GameState current_game_state;
 extern Screen* current_screen;
@@ -64,6 +67,11 @@ static ALLEGRO_FONT* font = NULL;
 static ALLEGRO_FONT* cutscene_font = NULL;
 static ALLEGRO_FONT* level_font = NULL;
 static bool first_run = true;
+
+static ALLEGRO_SAMPLE* monitor_click = NULL;
+static ALLEGRO_SAMPLE* phase_select = NULL;
+static ALLEGRO_SAMPLE* locked_phase = NULL;
+static ALLEGRO_SAMPLE* go_back = NULL;
 
 static bool showing_cutscene = false;
 static bool in_history_screen = false;
@@ -130,6 +138,13 @@ static void init(ALLEGRO_DISPLAY* display)
     font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 14, 0);
     cutscene_font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 16, 0);
     level_font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 20, 0);
+
+    al_reserve_samples(4);
+    load_audio_icons();
+    monitor_click = al_load_sample("assets/audios/sound_effects/monitor_click.wav");
+    phase_select = al_load_sample("assets/audios/sound_effects/select_phase.wav");
+    locked_phase = al_load_sample("assets/audios/sound_effects/locked_phase.wav");
+    go_back = al_load_sample("assets/audios/sound_effects/go_back.wav");
 
     if (!font)
         font = al_create_builtin_font();
@@ -305,6 +320,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             if (mx >= back_x1 && mx <= back_x2 && my >= back_y1 && my <= back_y2)
             {
                 in_history_screen = false;
+                play_sound_effect(go_back);
                 return;
             }
 
@@ -325,6 +341,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                 {
                     if (!is_level_unlocked(level_nodes[i].level_number))
                     {
+                        play_sound_effect(locked_phase);
                         printf("Fase %d bloqueada\n", level_nodes[i].level_number);
                         break;
                     }
@@ -337,6 +354,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                     {
                         set_current_stage(level_nodes[i].level_number);
                         current_screen->destroy();
+                        play_sound_effect(phase_select);
                         current_screen = &StageScreen;
                         current_screen->init(NULL);
                     }
@@ -366,6 +384,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         if (mx >= col_x1 && mx <= col_x2 && my >= col_y1 && my <= col_y2)
         {
             printf("Coleção\n");
+            play_sound_effect(monitor_click);
         }
 
         int sf_x1 = 100;
@@ -376,11 +395,13 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         {
             if (PLAYER_ENTITY && PLAYER_ENTITY->current_stage == 1)
             {
+                play_sound_effect(monitor_click);
                 show_tutorial_modal = true;
                 return;
             }
 
             current_screen->destroy();
+            play_sound_effect(monitor_click);
             current_screen = &EndlessModeScreen;
             current_screen->init(NULL);
         }
@@ -401,6 +422,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                 current_cutscene_index = 0;
             }
             printf("História iniciada\n");
+            play_sound_effect(monitor_click);
         }
     }
 }
@@ -408,6 +430,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 static void draw(int screen_width, int screen_height)
 {
     al_clear_to_color(al_map_rgb(0, 0, 0));
+
 
     if (showing_cutscene)
     {
@@ -464,7 +487,6 @@ static void draw(int screen_width, int screen_height)
                                          10, al_map_rgb(40, 40, 60));
         al_draw_rounded_rectangle(modal_x, modal_y, modal_x + modal_w, modal_y + modal_h, 10, 10,
                                   al_map_rgb(150, 150, 150), 3.0f);
-
         if (font)
         {
             const char* line1 = "MODO SEM FIM BLOQUEADO";
@@ -553,6 +575,7 @@ static void draw(int screen_width, int screen_height)
     char vaccines_text[10];
     snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
     al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
+    draw_audio_icons();
 }
 
 static void destroy(void)
@@ -567,6 +590,14 @@ static void destroy(void)
         al_destroy_font(cutscene_font);
     if (level_font)
         al_destroy_font(level_font);
+    if (monitor_click)
+        al_destroy_sample(monitor_click);
+    if (go_back)
+        al_destroy_sample(go_back);
+    if (phase_select)
+        al_destroy_sample(phase_select);
+    if (locked_phase)
+        al_destroy_sample(locked_phase);
 
     for (int i = 0; i < TOTAL_CUTSCENES; i++)
     {
