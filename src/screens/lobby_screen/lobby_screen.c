@@ -12,6 +12,7 @@
 #include "../../core/game.h"
 #include "../../entities/player/player.h"
 #include "../base/menu.h"
+#include "../boss_stage_screen/boss_stage_screen.h"
 #include "../endless_mode_screen/endless_mode_screen.h"
 #include "../stage_screen/stage_screen.h"
 
@@ -328,7 +329,10 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
                     if (level_nodes[i].is_special)
                     {
-                        printf("Fase Especial %d clicada\n", level_nodes[i].level_number);
+                        printf("Fase Especial %d - Boss Final!\n", level_nodes[i].level_number);
+                        current_screen->destroy();
+                        current_screen = &BossStageScreen;
+                        current_screen->init(NULL);
                     }
                     else
                     {
