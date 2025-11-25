@@ -913,7 +913,7 @@ static void draw_boss(int screen_width, int screen_height)
         if (font)
         {
             al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, screen_height / 2 + 70,
-                         ALLEGRO_ALIGN_CENTER, "O BOSS ESTA CHEGANDO!");
+                         ALLEGRO_ALIGN_CENTER, "O VILÃO ESTÁ CHEGANDO!");
         }
     }
 
@@ -967,7 +967,7 @@ static void draw_boss(int screen_width, int screen_height)
                               al_map_rgb(255, 255, 255), 3.0f);
 
             char health_text[32];
-            sprintf(health_text, "VILAO FINAL: %d/%d", boss.health, boss.max_health);
+            sprintf(health_text, "VILÃO FINAL: %d/%d", boss.health, boss.max_health);
             al_draw_text(font, al_map_rgb(255, 255, 255), screen_width / 2, bar_y + 5,
                          ALLEGRO_ALIGN_CENTER, health_text);
 
