@@ -1,7 +1,5 @@
 #include "entities.h"
 
-// TO-DO: Ler de um arquivo JSON para remover a responsabilidade do C saber cada criatura do jogo
-
 Microorganism microorganisms[10];
 static int total_entities = 0;
 
@@ -13,8 +11,8 @@ static Defender defenders[] = {
                 .description =
                     "Célula de defesa que identifica, engole e destrói microrganismos invasores. "
                     "Representa funções típicas de fagócitos, como neutrófilos e macrófagos.",
-                .health = 120,
-                .speed = 0.4f,
+                .health = 30,
+                .speed = 0.3f,
                 .attack = 1,
                 .defense = 4,
                 .attack_cooldown = 3,
@@ -27,7 +25,7 @@ static Defender defenders[] = {
                 .image = NULL,
             },
         .cost_to_unlock = 0,
-        .cost_to_place = 50,
+        .cost_to_place = 110,
     },
     {
         .base =
@@ -37,7 +35,7 @@ static Defender defenders[] = {
                     "Leucócito especializado no combate a parasitas, como vermes. Atua também na "
                     "modulação de respostas alérgicas, liberando enzimas e proteínas tóxicas.",
                 .health = 80,
-                .speed = 0.6f,
+                .speed = 0.9f,
                 .attack = 3,
                 .defense = 3,
                 .attack_cooldown = 2.5,
@@ -49,8 +47,8 @@ static Defender defenders[] = {
                 .image_path = "assets/images/defenders/eosinophil.png",
                 .image = NULL,
             },
-        .cost_to_unlock = 4,
-        .cost_to_place = 75,
+        .cost_to_unlock = 25,
+        .cost_to_place = 160,
     },
     {
         .base =
@@ -61,9 +59,9 @@ static Defender defenders[] = {
                                "ajudar na defesa contra patógenos.",
                 .health = 100,
                 .speed = 0.5f,
-                .attack = 5,
+                .attack = 10,
                 .defense = 5,
-                .attack_cooldown = 2,
+                .attack_cooldown = 9,
                 .active = false,
                 .row = 0,
                 .col = 0,
@@ -72,8 +70,8 @@ static Defender defenders[] = {
                 .image_path = "assets/images/defenders/basophil.png",
                 .image = NULL,
             },
-        .cost_to_unlock = 6,
-        .cost_to_place = 100,
+        .cost_to_unlock = 40,
+        .cost_to_place = 325,
     },
 };
 
