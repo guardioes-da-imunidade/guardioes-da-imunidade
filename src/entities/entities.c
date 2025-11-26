@@ -35,8 +35,8 @@ static Defender defenders[] = {
                     "Leucócito especializado no combate a parasitas, como vermes. Atua também na "
                     "modulação de respostas alérgicas, liberando enzimas e proteínas tóxicas.",
                 .health = 80,
-                .speed = 0.9f,
-                .attack = 3,
+                .speed = 0.11f,
+                .attack = 2,
                 .defense = 3,
                 .attack_cooldown = 2.5,
                 .active = false,
