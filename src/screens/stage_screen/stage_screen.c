@@ -264,37 +264,67 @@ static void configure_stage(int stage_number)
         case 1:
             stage_config.total_waves = 2;
             stage_config.enemies_per_wave = 3;
-            stage_config.wave_interval = 10.0f;
+            stage_config.wave_interval = 8.0f;
             break;
 
         case 2:
             stage_config.total_waves = 3;
-            stage_config.enemies_per_wave = 4;
-            stage_config.wave_interval = 12.0f;
+            stage_config.enemies_per_wave = 5;
+            stage_config.wave_interval = 10.0f;
             break;
 
         case 3:
-            stage_config.total_waves = 3;
-            stage_config.enemies_per_wave = 5;
-            stage_config.wave_interval = 12.0f;
+            stage_config.total_waves = 4;
+            stage_config.enemies_per_wave = 6;
+            stage_config.wave_interval = 10.0f;
             break;
 
         case 4:
             stage_config.total_waves = 4;
-            stage_config.enemies_per_wave = 6;
-            stage_config.wave_interval = 14.0f;
+            stage_config.enemies_per_wave = 8;
+            stage_config.wave_interval = 12.0f;
             break;
 
         case 5:
-            stage_config.total_waves = 4;
-            stage_config.enemies_per_wave = 8;
+            stage_config.total_waves = 5;
+            stage_config.enemies_per_wave = 10;
+            stage_config.wave_interval = 12.0f;
+            break;
+
+        case 6:
+            stage_config.total_waves = 5;
+            stage_config.enemies_per_wave = 12;
+            stage_config.wave_interval = 14.0f;
+            break;
+
+        case 7:
+            stage_config.total_waves = 6;
+            stage_config.enemies_per_wave = 14;
+            stage_config.wave_interval = 14.0f;
+            break;
+
+        case 8:
+            stage_config.total_waves = 6;
+            stage_config.enemies_per_wave = 16;
             stage_config.wave_interval = 15.0f;
             break;
 
+        case 9:
+            stage_config.total_waves = 7;
+            stage_config.enemies_per_wave = 18;
+            stage_config.wave_interval = 15.0f;
+            break;
+
+        case 10:
+            stage_config.total_waves = 7;
+            stage_config.enemies_per_wave = 20;
+            stage_config.wave_interval = 16.0f;
+            break;
+
         default:
-            stage_config.total_waves = 4 + (stage_number / 3);
-            stage_config.enemies_per_wave = 8 + (stage_number - 5) * 2;
-            stage_config.wave_interval = 15.0f + (stage_number / 10) * 2.0f;
+            stage_config.total_waves = 7 + ((stage_number - 10) / 2);
+            stage_config.enemies_per_wave = 20 + ((stage_number - 10) * 2);
+            stage_config.wave_interval = 16.0f + ((stage_number - 10) / 5) * 2.0f;
             break;
     }
 }
@@ -410,12 +440,17 @@ static void spawn_wave_enemy(int screen_width)
             enemies[i].base.y =
                 GRID_START_Y + enemies[i].base.row * cell_height + cell_height / 2.0f;
 
-            float base_speed = 30.0f + (stage_config.stage_number * 3.0f);
+            float base_speed = 25.0f + (stage_config.stage_number * 2.5f);
             if (stage_config.stage_number == 1)
-                base_speed = 25.0f;
+                base_speed = 20.0f;
 
             enemies[i].base.speed = base_speed;
-            enemies[i].base.health = 2 + (stage_config.stage_number / 2);
+
+            int base_health = 2 + (stage_config.stage_number / 2);
+            if (stage_config.stage_number >= 5)
+                base_health += (stage_config.stage_number - 4);
+
+            enemies[i].base.health = base_health;
             enemies_spawned_in_wave++;
             break;
         }
@@ -430,9 +465,7 @@ static void spawn_tutorial_enemy(void)
         {
             enemies[i].base.active = true;
             enemies[i].base.row = tutorial_defender_row;
-            enemies[i].type = 0;  // TODO (resolvendo conflitos): Atualmente é fixo para o primeiro
-                                  // inimigo ser o Vírus antes era rand() % 3, arrumar uma forma
-                                  // mais inteligente de associar tipos a inimigos.
+            enemies[i].type = 0;
             enemies[i].base.x = (float)screen_width_cached;
             enemies[i].base.y =
                 GRID_START_Y + enemies[i].base.row * cell_height + cell_height / 2.0f;
@@ -503,7 +536,6 @@ static void shoot_projectile(int row, int col, int defender_id)
             projectiles[i].animation_time = 0.0f;
             projectiles[i].damage = defender->base.attack;
 
-            // TODO: Armazenar o tipo de projétil diretamente na definição do defensor na struct
             if (defender_id == 0)
             {
                 projectiles[i].type = PROJECTILE_WHITE_BALL;
@@ -734,7 +766,7 @@ static void init(ALLEGRO_DISPLAY* display)
     init_arrays();
 
     game_time = 0.0f;
-    vitamins = 200;
+    vitamins = 300;
     stage_complete = false;
     stage_failed = false;
     current_wave = 0;
@@ -980,7 +1012,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
             else
             {
                 wave_timer += delta_time;
-                if (wave_timer >= 1.5f && enemies_spawned_in_wave < stage_config.enemies_per_wave)
+                if (wave_timer >= 1.2f && enemies_spawned_in_wave < stage_config.enemies_per_wave)
                 {
                     spawn_wave_enemy(screen_width_cached);
                     wave_timer = 0.0f;
