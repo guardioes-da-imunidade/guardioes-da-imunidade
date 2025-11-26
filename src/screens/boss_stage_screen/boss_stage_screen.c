@@ -728,7 +728,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         {
             Player->vaccines += 100;
 
-            if (Player->current_stage == 11)
+            if (Player->current_stage == 5)
             {
                 Player->current_stage++;
             }
