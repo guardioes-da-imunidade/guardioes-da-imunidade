@@ -45,6 +45,8 @@ static void on_microorganism_change(void* context)
 
 static void init(ALLEGRO_DISPLAY* display)
 {
+    (void)display;
+
     background = al_load_bitmap("assets/images/menu/background_bestiary.jpg");
 
     microorganisms_indexes_memo = malloc(sizeof(int) * get_entities_count());
@@ -58,7 +60,11 @@ static void init(ALLEGRO_DISPLAY* display)
     current_creature_index = 0;
 }
 
-static void update(ALLEGRO_EVENT* event, bool* running) {}
+static void update(ALLEGRO_EVENT* event, bool* running)
+{
+    (void)event;
+    (void)running;
+}
 
 static void draw(int screen_width, int screen_height)
 {

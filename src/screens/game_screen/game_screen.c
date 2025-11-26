@@ -9,7 +9,7 @@
 #include "../base/menu.h"
 
 extern GameState current_game_state;
-extern Screen *current_screen;
+extern Screen* current_screen;
 
 static float square_x = 50;
 static float square_y = 250;
@@ -24,8 +24,10 @@ static float projectile_y = 0;
 static bool projectile_active = false;
 static float shoot_timer = 0;
 
-static void init(ALLEGRO_DISPLAY *display)
+static void init(ALLEGRO_DISPLAY* display)
 {
+    (void)display;
+
     current_game_state = GAME_PLAYING;
     if (first_run)
     {
@@ -34,7 +36,7 @@ static void init(ALLEGRO_DISPLAY *display)
     }
 }
 
-static void update(ALLEGRO_EVENT *event, bool *running)
+static void update(ALLEGRO_EVENT* event, bool* running)
 {
     if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
     {

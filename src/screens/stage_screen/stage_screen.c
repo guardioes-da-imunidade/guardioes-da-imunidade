@@ -1093,6 +1093,8 @@ static void draw_text_centered_multiline(ALLEGRO_FONT* f, ALLEGRO_COLOR color, f
 
 static void draw_game_elements(int screen_width, int screen_height)
 {
+    (void)screen_height;
+
     int selector_width = 100;
     int start_x = 10;
 

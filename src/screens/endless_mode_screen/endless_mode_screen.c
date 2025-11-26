@@ -776,7 +776,6 @@ static void draw(int screen_width, int screen_height)
         {
             if (orbs[i].active)
             {
-                float cos_rot = cos(orbs[i].rotation * 3.14159f / 180.0f);
                 float glow = sin(orbs[i].rotation * 3.14159f / 180.0f) * 5.0f;
                 al_draw_filled_circle(orbs[i].x, orbs[i].y, 15.0f + glow,
                                       al_map_rgba(255, 215, 0, 150));

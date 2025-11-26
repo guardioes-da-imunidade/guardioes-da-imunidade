@@ -2,6 +2,8 @@
 
 void draw_vaccines_count(int screen_width, int screen_height)
 {
+    (void)screen_height;
+
     int radius = 25;
     int circle_x = screen_width - radius - 10;
     int circle_y = radius + 10;

@@ -67,8 +67,6 @@ void toggle_mute()
     mixer = al_get_default_mixer();
     if (mixer)
     {
-        float volume = al_get_mixer_gain(mixer);
-
         muted = !muted;
         if (muted)
         {
