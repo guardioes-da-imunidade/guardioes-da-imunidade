@@ -19,6 +19,7 @@ typedef struct
     int vaccines;
     int current_stage;
     int in_use_slots[MAX_IN_USE_SLOTS];
+    bool lobby_tour_completed;
     Defender* defenders[];
 } PlayerEntity;
 
