@@ -14,6 +14,7 @@ void init_player()
 
     Player->vaccines = 10;
     Player->current_stage = 1;
+    Player->lobby_tour_completed = false;
 
     for (int i = 0; i < MAX_IN_USE_SLOTS; i++) Player->in_use_slots[i] = -1;
 
