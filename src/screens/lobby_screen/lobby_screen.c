@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "../../core/game.h"
@@ -32,6 +33,17 @@ typedef struct
     int level_number;
     bool is_special;
 } LevelNode;
+
+typedef enum
+{
+    LOBBY_TOUR_NONE = 0,
+    LOBBY_TOUR_WELCOME,
+    LOBBY_TOUR_HISTORIA,
+    LOBBY_TOUR_MODO_SEM_FIM,
+    LOBBY_TOUR_COLECAO,
+    LOBBY_TOUR_VACINAS,
+    LOBBY_TOUR_COMPLETE
+} LobbyTourStep;
 
 static CutsceneData cutscenes[] = {
     {"assets/images/scene/scene_planet_earth.png",
@@ -76,6 +88,58 @@ static double blink_timer = 0.0;
 static double pulse_timer = 0.0;
 
 static bool show_tutorial_modal = false;
+
+static LobbyTourStep lobby_tour_step = LOBBY_TOUR_NONE;
+static bool lobby_tour_active = false;
+static float lobby_tour_timer = 0.0f;
+
+static void draw_text_centered_multiline(ALLEGRO_FONT* f, ALLEGRO_COLOR color, float x, float y,
+                                         const char* text, float scale)
+{
+    char buffer[512];
+    strncpy(buffer, text, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+
+    int line_count = 0;
+    char* temp = malloc(strlen(text) + 1);
+    strcpy(temp, text);
+    char* count_line = strtok(temp, "\n");
+    while (count_line != NULL)
+    {
+        line_count++;
+        count_line = strtok(NULL, "\n");
+    }
+    free(temp);
+
+    float line_height = 20.0f * scale;
+    float total_height = line_count * line_height;
+    float start_y = y - (total_height / 2.0f);
+
+    strcpy(buffer, text);
+    char* line = strtok(buffer, "\n");
+    float offset = 0.0f;
+
+    ALLEGRO_TRANSFORM transform;
+    al_identity_transform(&transform);
+
+    while (line != NULL)
+    {
+        al_identity_transform(&transform);
+        al_translate_transform(&transform, -al_get_text_width(f, line) / 2.0f,
+                               -al_get_font_line_height(f) / 2.0f);
+        al_scale_transform(&transform, scale, scale);
+        al_translate_transform(&transform, x, start_y + offset);
+        al_use_transform(&transform);
+
+        al_draw_text(f, color, 0, 0, 0, line);
+
+        offset += line_height;
+        line = strtok(NULL, "\n");
+    }
+
+    al_identity_transform(&transform);
+    al_use_transform(&transform);
+}
 
 static void init_level_nodes(void)
 {
@@ -122,6 +186,18 @@ static void init(ALLEGRO_DISPLAY* display)
     }
 
     show_tutorial_modal = false;
+
+    if (!Player->lobby_tour_completed)
+    {
+        lobby_tour_active = true;
+        lobby_tour_step = LOBBY_TOUR_WELCOME;
+        lobby_tour_timer = 0.0f;
+    }
+    else
+    {
+        lobby_tour_active = false;
+        lobby_tour_step = LOBBY_TOUR_NONE;
+    }
 
     ALLEGRO_PATH* path = al_get_standard_path(ALLEGRO_EXENAME_PATH);
     al_change_directory(al_path_cstr(path, ALLEGRO_NATIVE_PATH_SEP));
@@ -258,6 +334,54 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         return;
     }
 
+    if (lobby_tour_active)
+    {
+        if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+        {
+            lobby_tour_active = false;
+            lobby_tour_step = LOBBY_TOUR_NONE;
+            Player->lobby_tour_completed = true;
+            return;
+        }
+
+        if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
+        {
+            switch (lobby_tour_step)
+            {
+                case LOBBY_TOUR_WELCOME:
+                    lobby_tour_step = LOBBY_TOUR_HISTORIA;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_HISTORIA:
+                    lobby_tour_step = LOBBY_TOUR_MODO_SEM_FIM;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_MODO_SEM_FIM:
+                    lobby_tour_step = LOBBY_TOUR_COLECAO;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_COLECAO:
+                    lobby_tour_step = LOBBY_TOUR_VACINAS;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_VACINAS:
+                    lobby_tour_step = LOBBY_TOUR_COMPLETE;
+                    lobby_tour_active = false;
+                    Player->lobby_tour_completed = true;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                default:
+                    return;
+            }
+        }
+        return;
+    }
+
     if (showing_cutscene)
     {
         if (event->type == ALLEGRO_EVENT_KEY_DOWN || event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
@@ -377,6 +501,19 @@ static void update(ALLEGRO_EVENT* event, bool* running)
     {
         int mx = event->mouse.x;
         int my = event->mouse.y;
+
+        int tour_btn_x1 = 10;
+        int tour_btn_y1 = 10;
+        int tour_btn_x2 = 100;
+        int tour_btn_y2 = 50;
+        if (mx >= tour_btn_x1 && mx <= tour_btn_x2 && my >= tour_btn_y1 && my <= tour_btn_y2)
+        {
+            lobby_tour_active = true;
+            lobby_tour_step = LOBBY_TOUR_WELCOME;
+            lobby_tour_timer = 0.0f;
+            Player->lobby_tour_completed = false;
+            return;
+        }
 
         int col_x1 = 1050;
         int col_y1 = 170;
@@ -555,6 +692,154 @@ static void draw(int screen_width, int screen_height)
                               al_get_bitmap_height(background), 0, 0, 1280, 720, 0);
 
     draw_vaccines_count(screen_width, screen_height);
+
+    if (!lobby_tour_active && !in_history_screen && !showing_cutscene)
+    {
+        al_draw_filled_rounded_rectangle(10, 10, 100, 50, 5, 5, al_map_rgb(70, 130, 180));
+        al_draw_rounded_rectangle(10, 10, 100, 50, 5, 5, al_map_rgb(255, 255, 255), 2.0f);
+        if (font)
+            al_draw_text(font, al_map_rgb(255, 255, 255), 55, 25, ALLEGRO_ALIGN_CENTER, "TOUR");
+    }
+
+    if (lobby_tour_active && !in_history_screen && !showing_cutscene)
+    {
+        ALLEGRO_FONT* tour_font = cutscene_font ? cutscene_font : font;
+        ALLEGRO_FONT* tour_title_font = level_font ? level_font : font;
+
+        if (lobby_tour_step == LOBBY_TOUR_WELCOME)
+        {
+            al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(255, 255, 255),
+                                             screen_width / 2, screen_height / 2 - 80,
+                                             "BEM-VINDO, GUARDIÃO!", 1.5f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2,
+                    "Seja bem-vindo ao lobby!\nAqui você pode acessar diferentes modos,\nver sua coleção "
+                    "e acompanhar seu progresso.\n\nVamos fazer um tour pelos elementos!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 100, "Clique para continuar", 1.2f);
+                al_draw_text(font, al_map_rgb(150, 150, 150), screen_width / 2, screen_height - 40,
+                             ALLEGRO_ALIGN_CENTER, "Pressione ESC para pular o tour");
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_HISTORIA)
+        {
+            int his_x1 = 360;
+            int his_y1 = 130;
+            int his_x2 = 950;
+            int his_y2 = 460;
+
+            al_draw_filled_rectangle(0, 0, his_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(his_x2, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(his_x1, 0, his_x2, his_y1, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(his_x1, his_y2, his_x2, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            al_draw_rectangle(his_x1, his_y1, his_x2, his_y2, al_map_rgb(0, 255, 0), 5.0f);
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                                             80, "MODO HISTÓRIA", 1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height - 100,
+                    "Este é o modo história.\nAqui você acessa um monitor com as fases\ndisponíveis e "
+                    "pode selecionar qual jogar!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height - 40, "Clique para continuar", 1.2f);
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_MODO_SEM_FIM)
+        {
+            int sf_x1 = 100;
+            int sf_y1 = 400;
+            int sf_x2 = 280;
+            int sf_y2 = 510;
+
+            al_draw_filled_rectangle(0, 0, sf_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(sf_x2, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(sf_x1, 0, sf_x2, sf_y1, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(sf_x1, sf_y2, sf_x2, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            al_draw_rectangle(sf_x1, sf_y1, sf_x2, sf_y2, al_map_rgb(255, 165, 0), 5.0f);
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(255, 165, 0),
+                                             screen_width / 2, screen_height / 2 - 60, "MODO SEM FIM",
+                                             1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2 + 20,
+                    "Aqui você pode jogar um modo infinito!\nTeste suas habilidades até onde conseguir.\n"
+                    "(Desbloqueado após completar a fase 1)",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 100, "Clique para continuar", 1.2f);
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_COLECAO)
+        {
+            int col_x1 = 1050;
+            int col_y1 = 170;
+            int col_x2 = 1220;
+            int col_y2 = 260;
+
+            al_draw_filled_rectangle(0, 0, col_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(col_x2, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(col_x1, 0, col_x2, col_y1, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(col_x1, col_y2, col_x2, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            al_draw_rectangle(col_x1, col_y1, col_x2, col_y2, al_map_rgb(138, 43, 226), 5.0f);
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(138, 43, 226),
+                                             screen_width / 2, screen_height / 2 - 60, "COLEÇÃO", 1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2 + 20,
+                    "Acesse sua coleção de defensores e inimigos.\nVeja informações detalhadas sobre "
+                    "cada um\ne desbloqueie novos personagens!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 100, "Clique para continuar", 1.2f);
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_VACINAS)
+        {
+            int vaccine_x1 = 1200;
+            int vaccine_y1 = 10;
+            int vaccine_x2 = 1270;
+            int vaccine_y2 = 70;
+
+            al_draw_filled_rectangle(0, 0, vaccine_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(vaccine_x2, 0, screen_width, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(vaccine_x1, 0, vaccine_x2, vaccine_y1,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(vaccine_x1, vaccine_y2, vaccine_x2, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(255, 215, 0),
+                                             screen_width / 2, screen_height / 2 - 80,
+                                             "CONTADOR DE VACINAS", 1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2 + 10,
+                    "Aqui você vê quantas vacinas possui.\nVacinas são ganhas ao eliminar inimigos\ne "
+                    "podem ser usadas para desbloquear\nnovos defensores na coleção!"
+                    "\n\nO tour do lobby terminou! Boa sorte!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 140, "Clique para finalizar", 1.2f);
+            }
+        }
+    }
+
 }
 
 static void destroy(void)
