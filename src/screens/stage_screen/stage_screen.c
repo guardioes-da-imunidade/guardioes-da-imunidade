@@ -14,6 +14,9 @@
 #include "../../entities/player/player-entity.h"
 #include "../base/menu.h"
 #include "../lobby_screen/lobby_screen.h"
+#include "../../systems/global_audio.h"
+#include "../../systems/sound_effect.h"
+#include "../../systems/music.h"
 
 extern GameState current_game_state;
 extern Screen* current_screen;
@@ -127,6 +130,18 @@ typedef struct
     float wave_interval;
     int stage_number;
 } StageConfig;
+
+typedef struct
+{
+    ALLEGRO_SAMPLE* vitamin_collect;
+    ALLEGRO_SAMPLE* selecting_defender;
+    ALLEGRO_SAMPLE* laser_shot;
+    ALLEGRO_SAMPLE* magic_spell;
+    ALLEGRO_SAMPLE* white_projectile;
+    ALLEGRO_SAMPLE* winning;
+} SoundEffects;
+
+static SoundEffects sound_effects;
 
 static Particle particles[MAX_PARTICLES];
 static Orb orbs[MAX_ORBS];
@@ -283,6 +298,7 @@ static void handle_select_defender(int mouse_x, int mouse_y)
                 if (vitamins >= defender_costs[i])
                 {
                     selected_defender_slot = i;
+                    play_sound_effect(sound_effects.selecting_defender);
                     tutorial_step = TUTORIAL_PLACE_DEFENDER;
                     tutorial_timer = 0.0f;
                 }
@@ -574,16 +590,19 @@ static void shoot_projectile(int row, int col, int defender_slot)
             {
                 projectiles[i].type = PROJECTILE_WHITE_BALL;
                 projectiles[i].speed = 180.0f;
+                play_sound_effect(sound_effects.white_projectile);
             }
             else if (defender_slot == 1)
             {
                 projectiles[i].type = PROJECTILE_BLUE_MAGIC;
                 projectiles[i].speed = 240.0f;
+                play_sound_effect(sound_effects.magic_spell);
             }
             else
             {
                 projectiles[i].type = PROJECTILE_RED_LASER;
                 projectiles[i].speed = 320.0f;
+                play_sound_effect(sound_effects.laser_shot);
             }
 
             if (tutorial_active && tutorial_step == TUTORIAL_ENEMY_EXPLANATION &&
@@ -818,6 +837,14 @@ static void init(ALLEGRO_DISPLAY* display)
     }
 
     last_time = al_get_time();
+
+    al_reserve_samples(80);
+    sound_effects.vitamin_collect = al_load_sample("assets/audios/sound_effects/vitamin_collect.wav");
+    sound_effects.selecting_defender = al_load_sample("assets/audios/sound_effects/selecting_defender.wav");
+    sound_effects.laser_shot = al_load_sample("assets/audios/sound_effects/laser_shot.wav");
+    sound_effects.magic_spell = al_load_sample("assets/audios/sound_effects/magic_spell.wav");
+    sound_effects.white_projectile = al_load_sample("assets/audios/sound_effects/white_projectile.wav");
+    sound_effects.winning = al_load_sample("assets/audios/sound_effects/winning.wav");
 }
 
 static void update(ALLEGRO_EVENT* event, bool* running)
@@ -917,6 +944,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                 if (dist2 < 20.0f * 20.0f)
                 {
                     vitamins += 75;
+                    play_sound_effect(sound_effects.vitamin_collect);
                     orbs[i].active = false;
                     spawn_particle_burst(orbs[i].x, orbs[i].y, 15, al_map_rgb(255, 215, 0));
                     return;
@@ -1052,6 +1080,7 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                 check_all_enemies_defeated())
             {
                 stage_complete = true;
+                play_sound_effect(sound_effects.winning);
             }
 
             if (stage_failed)
@@ -1233,6 +1262,7 @@ static void draw_game_elements(int screen_width, int screen_height)
                 al_draw_filled_rectangle(projectiles[i].x - 25, projectiles[i].y - 4,
                                          projectiles[i].x + 25, projectiles[i].y + 4,
                                          al_map_rgb(255, 30, 30));
+
             }
         }
     }

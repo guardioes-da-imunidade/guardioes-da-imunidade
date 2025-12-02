@@ -354,7 +354,6 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                     {
                         set_current_stage(level_nodes[i].level_number);
                         current_screen->destroy();
-                        play_sound_effect(phase_select);
                         current_screen = &StageScreen;
                         current_screen->init(NULL);
                     }
