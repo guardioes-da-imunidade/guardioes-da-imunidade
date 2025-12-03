@@ -3,7 +3,7 @@
 
 Jogo 2D do gênero **Tower Defense**, desenvolvido em **C** utilizando a biblioteca **Allegro 5**, como parte do projeto integrador do **2º semestre do curso de Ciência da Computação**.
 
-## História
+## :scroll: História
 
 Dentro de um vasto universo microscópico, **uma guerra silenciosa acontece a cada instante**. De um lado, as **células de defesa** atuam como guardiãs incansáveis, sempre em alerta para proteger o organismo contra qualquer ameaça. Cada uma cumpre sua função essencial, patrulhando como sentinelas e usando seu poder para manter o corpo em equilíbrio.
 
