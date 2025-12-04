@@ -7,16 +7,15 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "../../core/game.h"
-#include "../../entities/player/player-entity.h"
+#include "../../entities/player/player.h"
 #include "../base/menu.h"
+#include "../boss_stage_screen/boss_stage_screen.h"
 #include "../endless_mode_screen/endless_mode_screen.h"
 #include "../stage_screen/stage_screen.h"
-
-extern GameState current_game_state;
-extern Screen* current_screen;
 
 extern GameState current_game_state;
 extern Screen* current_screen;
@@ -34,6 +33,17 @@ typedef struct
     int level_number;
     bool is_special;
 } LevelNode;
+
+typedef enum
+{
+    LOBBY_TOUR_NONE = 0,
+    LOBBY_TOUR_WELCOME,
+    LOBBY_TOUR_HISTORIA,
+    LOBBY_TOUR_MODO_SEM_FIM,
+    LOBBY_TOUR_COLECAO,
+    LOBBY_TOUR_VACINAS,
+    LOBBY_TOUR_COMPLETE
+} LobbyTourStep;
 
 static CutsceneData cutscenes[] = {
     {"assets/images/scene/scene_planet_earth.png",
@@ -55,14 +65,16 @@ static CutsceneData cutscenes[] = {
      "A batalha pela vida está prestes a começar."}};
 
 static const int TOTAL_CUTSCENES = 3;
-static const int TOTAL_LEVELS = 11;
-static const float NODE_RADIUS = 35.0f;
+static const int TOTAL_LEVELS = 5;
+static const float NODE_RADIUS = 40.0f;
+static const float BOSS_NODE_RADIUS = 55.0f;
 
 static ALLEGRO_BITMAP* background = NULL;
 static ALLEGRO_BITMAP* background_history = NULL;
 static ALLEGRO_FONT* font = NULL;
 static ALLEGRO_FONT* cutscene_font = NULL;
 static ALLEGRO_FONT* level_font = NULL;
+static ALLEGRO_FONT* boss_font = NULL;
 static bool first_run = true;
 
 static bool showing_cutscene = false;
@@ -71,50 +83,120 @@ static bool cutscene_already_seen = false;
 static int current_cutscene_index = 0;
 static ALLEGRO_BITMAP* cutscene_images[3] = {NULL, NULL, NULL};
 
-static LevelNode level_nodes[11];
+static LevelNode level_nodes[5];
 static double blink_timer = 0.0;
+static double pulse_timer = 0.0;
+
+static bool show_tutorial_modal = false;
+
+static LobbyTourStep lobby_tour_step = LOBBY_TOUR_NONE;
+static bool lobby_tour_active = false;
+static float lobby_tour_timer = 0.0f;
+
+static void draw_text_centered_multiline(ALLEGRO_FONT* f, ALLEGRO_COLOR color, float x, float y,
+                                         const char* text, float scale)
+{
+    char buffer[512];
+    strncpy(buffer, text, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+
+    int line_count = 0;
+    char* temp = malloc(strlen(text) + 1);
+    strcpy(temp, text);
+    char* count_line = strtok(temp, "\n");
+    while (count_line != NULL)
+    {
+        line_count++;
+        count_line = strtok(NULL, "\n");
+    }
+    free(temp);
+
+    float line_height = 20.0f * scale;
+    float total_height = line_count * line_height;
+    float start_y = y - (total_height / 2.0f);
+
+    strcpy(buffer, text);
+    char* line = strtok(buffer, "\n");
+    float offset = 0.0f;
+
+    ALLEGRO_TRANSFORM transform;
+    al_identity_transform(&transform);
+
+    while (line != NULL)
+    {
+        al_identity_transform(&transform);
+        al_translate_transform(&transform, -al_get_text_width(f, line) / 2.0f,
+                               -al_get_font_line_height(f) / 2.0f);
+        al_scale_transform(&transform, scale, scale);
+        al_translate_transform(&transform, x, start_y + offset);
+        al_use_transform(&transform);
+
+        al_draw_text(f, color, 0, 0, 0, line);
+
+        offset += line_height;
+        line = strtok(NULL, "\n");
+    }
+
+    al_identity_transform(&transform);
+    al_use_transform(&transform);
+}
 
 static void init_level_nodes(void)
 {
-    float grid_width = 4 * 180.0f - 180.0f;
-    float grid_height = 3 * 140.0f - 140.0f;
+    float center_x = 1280.0f / 2.0f;
+    float start_y = 180.0f;
+    float spacing_y = 100.0f;
 
-    float start_x = (1280.0f - grid_width) / 2.0f;
-    float start_y = (720.0f - grid_height) / 2.0f - 40.0f;
+    level_nodes[0].x = center_x - 200.0f;
+    level_nodes[0].y = start_y;
+    level_nodes[0].level_number = 1;
+    level_nodes[0].is_special = false;
 
-    float spacing_x = 180.0f;
-    float spacing_y = 140.0f;
+    level_nodes[1].x = center_x + 200.0f;
+    level_nodes[1].y = start_y + spacing_y;
+    level_nodes[1].level_number = 2;
+    level_nodes[1].is_special = false;
 
-    int node_index = 0;
-    for (int row = 0; row < 3; row++)
-    {
-        for (int col = 0; col < 4; col++)
-        {
-            if (node_index >= 10)
-                break;
+    level_nodes[2].x = center_x - 200.0f;
+    level_nodes[2].y = start_y + spacing_y * 2;
+    level_nodes[2].level_number = 3;
+    level_nodes[2].is_special = false;
 
-            level_nodes[node_index].x = start_x + col * spacing_x;
-            level_nodes[node_index].y = start_y + row * spacing_y;
-            level_nodes[node_index].level_number = node_index + 1;
-            level_nodes[node_index].is_special = false;
-            node_index++;
-        }
-    }
+    level_nodes[3].x = center_x + 200.0f;
+    level_nodes[3].y = start_y + spacing_y * 3;
+    level_nodes[3].level_number = 4;
+    level_nodes[3].is_special = false;
 
-    level_nodes[10].x = 1280.0f / 2.0f;
-    level_nodes[10].y = start_y + 3 * spacing_y + 20.0f;
-    level_nodes[10].level_number = 11;
-    level_nodes[10].is_special = true;
+    level_nodes[4].x = center_x;
+    level_nodes[4].y = start_y + spacing_y * 4 + 20.0f;
+    level_nodes[4].level_number = 5;
+    level_nodes[4].is_special = true;
 }
 
 static void init(ALLEGRO_DISPLAY* display)
 {
+    (void)display;
+
     current_game_state = GAME_PLAYING;
 
     if (first_run)
     {
         srand(time(NULL));
         first_run = false;
+    }
+
+    show_tutorial_modal = false;
+
+    if (!Player->lobby_tour_completed)
+    {
+        lobby_tour_active = true;
+        lobby_tour_step = LOBBY_TOUR_WELCOME;
+        lobby_tour_timer = 0.0f;
+    }
+    else
+    {
+        lobby_tour_active = false;
+        lobby_tour_step = LOBBY_TOUR_NONE;
     }
 
     ALLEGRO_PATH* path = al_get_standard_path(ALLEGRO_EXENAME_PATH);
@@ -125,7 +207,8 @@ static void init(ALLEGRO_DISPLAY* display)
     background_history = al_load_bitmap("assets/images/menu/background_lobby_history.png");
     font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 14, 0);
     cutscene_font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 16, 0);
-    level_font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 20, 0);
+    level_font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 24, 0);
+    boss_font = al_load_ttf_font("assets/fonts/PressStart2P.ttf", 18, 0);
 
     if (!font)
         font = al_create_builtin_font();
@@ -133,6 +216,8 @@ static void init(ALLEGRO_DISPLAY* display)
         cutscene_font = al_create_builtin_font();
     if (!level_font)
         level_font = al_create_builtin_font();
+    if (!boss_font)
+        boss_font = al_create_builtin_font();
 
     cutscene_images[0] = al_load_bitmap("assets/images/scene/scene_planet_earth.png");
     cutscene_images[1] = al_load_bitmap("assets/images/scene/scene_danger_alert.png");
@@ -143,29 +228,34 @@ static void init(ALLEGRO_DISPLAY* display)
 
 static void draw_level_connections(void)
 {
-    ALLEGRO_COLOR connection_color = al_map_rgb(100, 100, 100);
-    float line_thickness = 4.0f;
+    ALLEGRO_COLOR connection_color = al_map_rgb(80, 80, 80);
+    float line_thickness = 6.0f;
 
-    for (int i = 0; i < 9; i++)
-    {
-        int next = i + 1;
-        al_draw_line(level_nodes[i].x, level_nodes[i].y, level_nodes[next].x, level_nodes[next].y,
-                     connection_color, line_thickness);
-    }
-
-    al_draw_line(level_nodes[9].x, level_nodes[9].y, level_nodes[10].x, level_nodes[10].y,
+    al_draw_line(level_nodes[0].x, level_nodes[0].y, level_nodes[1].x, level_nodes[1].y,
                  connection_color, line_thickness);
+
+    al_draw_line(level_nodes[1].x, level_nodes[1].y, level_nodes[2].x, level_nodes[2].y,
+                 connection_color, line_thickness);
+
+    al_draw_line(level_nodes[2].x, level_nodes[2].y, level_nodes[3].x, level_nodes[3].y,
+                 connection_color, line_thickness);
+
+    float boss_glow = (sin(pulse_timer * 2.0) + 1.0) / 2.0;
+    ALLEGRO_COLOR boss_line_color = al_map_rgb(150 + (int)(50 * boss_glow), 50, 50);
+
+    al_draw_line(level_nodes[3].x, level_nodes[3].y, level_nodes[4].x, level_nodes[4].y,
+                 boss_line_color, line_thickness);
 }
 
-static bool is_level_unlocked(int level_number)
-{
-    return level_number <= PLAYER_ENTITY->current_stage;
-}
+static bool is_level_unlocked(int level_number) { return level_number <= Player->current_stage; }
 
 static void draw_level_nodes(void)
 {
     blink_timer += 0.05;
+    pulse_timer += 0.05;
+
     float blink_factor = (sin(blink_timer * 3.0) + 1.0) / 2.0;
+    float pulse_factor = (sin(pulse_timer * 4.0) + 1.0) / 2.0;
 
     for (int i = 0; i < TOTAL_LEVELS; i++)
     {
@@ -175,56 +265,62 @@ static void draw_level_nodes(void)
         ALLEGRO_COLOR fill_color;
         ALLEGRO_COLOR border_color;
         ALLEGRO_COLOR text_color;
+        float radius = node->is_special ? BOSS_NODE_RADIUS : NODE_RADIUS;
 
         if (!unlocked)
         {
-            fill_color = al_map_rgb(60, 60, 60);
-            border_color = al_map_rgb(40, 40, 40);
-            text_color = al_map_rgb(100, 100, 100);
+            fill_color = al_map_rgb(50, 50, 50);
+            border_color = al_map_rgb(30, 30, 30);
+            text_color = al_map_rgb(80, 80, 80);
 
-            if (node->is_special)
-            {
-                al_draw_filled_circle(node->x, node->y, NODE_RADIUS + 5, fill_color);
-                al_draw_circle(node->x, node->y, NODE_RADIUS + 5, border_color, 5.0f);
-            }
-            else
-            {
-                al_draw_filled_circle(node->x, node->y, NODE_RADIUS, fill_color);
-                al_draw_circle(node->x, node->y, NODE_RADIUS, border_color, 4.0f);
-            }
+            al_draw_filled_circle(node->x, node->y, radius, fill_color);
+            al_draw_circle(node->x, node->y, radius, border_color, 4.0f);
         }
         else if (node->is_special)
         {
-            int red_value = 150 + (int)(105 * blink_factor);
-            fill_color = al_map_rgb(red_value, 0, 0);
-            border_color = al_map_rgb(100, 0, 0);
+            float glow_size = 10.0f + pulse_factor * 8.0f;
+            al_draw_filled_circle(node->x, node->y, radius + glow_size,
+                                  al_map_rgba(255, 50, 50, (int)(80 * pulse_factor)));
+            al_draw_filled_circle(node->x, node->y, radius + glow_size * 0.6f,
+                                  al_map_rgba(255, 100, 50, (int)(100 * pulse_factor)));
+
+            int red_base = 180;
+            int red_pulse = (int)(75 * blink_factor);
+            fill_color = al_map_rgb(red_base + red_pulse, 20, 20);
+            border_color = al_map_rgb(255, 200, 50);
             text_color = al_map_rgb(255, 255, 255);
 
-            al_draw_filled_circle(node->x, node->y, NODE_RADIUS + 5, fill_color);
-            al_draw_circle(node->x, node->y, NODE_RADIUS + 5, border_color, 5.0f);
+            al_draw_filled_circle(node->x, node->y, radius, fill_color);
+            al_draw_circle(node->x, node->y, radius, border_color, 5.0f);
+            al_draw_circle(node->x, node->y, radius - 8, al_map_rgba(255, 255, 200, 100), 2.0f);
         }
         else
         {
-            fill_color = al_map_rgb(144, 238, 144);
-            border_color = al_map_rgb(60, 179, 113);
-            text_color = al_map_rgb(0, 0, 0);
+            fill_color = al_map_rgb(100, 200, 100);
+            border_color = al_map_rgb(50, 150, 50);
+            text_color = al_map_rgb(255, 255, 255);
 
-            al_draw_filled_circle(node->x, node->y, NODE_RADIUS, fill_color);
-            al_draw_circle(node->x, node->y, NODE_RADIUS, border_color, 4.0f);
+            al_draw_filled_circle(node->x, node->y, radius, fill_color);
+            al_draw_circle(node->x, node->y, radius, border_color, 4.0f);
         }
 
-        char level_text[4];
-        snprintf(level_text, sizeof(level_text), "%d", node->level_number);
-
-        float text_offset = node->is_special ? -12 : -12;
-        al_draw_text(level_font, text_color, node->x, node->y + text_offset, ALLEGRO_ALIGN_CENTRE,
-                     level_text);
+        if (node->is_special)
+        {
+            al_draw_text(level_font, text_color, node->x, node->y - 12, ALLEGRO_ALIGN_CENTRE, "5");
+        }
+        else
+        {
+            char level_text[4];
+            snprintf(level_text, sizeof(level_text), "%d", node->level_number);
+            al_draw_text(level_font, text_color, node->x, node->y - 12, ALLEGRO_ALIGN_CENTRE,
+                         level_text);
+        }
     }
 }
 
 static bool is_point_in_node(float px, float py, LevelNode* node)
 {
-    float radius = node->is_special ? NODE_RADIUS + 5 : NODE_RADIUS;
+    float radius = node->is_special ? BOSS_NODE_RADIUS : NODE_RADIUS;
     float dx = px - node->x;
     float dy = py - node->y;
     return (dx * dx + dy * dy) <= (radius * radius);
@@ -235,6 +331,54 @@ static void update(ALLEGRO_EVENT* event, bool* running)
     if (event->type == ALLEGRO_EVENT_DISPLAY_CLOSE)
     {
         *running = false;
+        return;
+    }
+
+    if (lobby_tour_active)
+    {
+        if (event->type == ALLEGRO_EVENT_KEY_DOWN && event->keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+        {
+            lobby_tour_active = false;
+            lobby_tour_step = LOBBY_TOUR_NONE;
+            Player->lobby_tour_completed = true;
+            return;
+        }
+
+        if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
+        {
+            switch (lobby_tour_step)
+            {
+                case LOBBY_TOUR_WELCOME:
+                    lobby_tour_step = LOBBY_TOUR_HISTORIA;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_HISTORIA:
+                    lobby_tour_step = LOBBY_TOUR_MODO_SEM_FIM;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_MODO_SEM_FIM:
+                    lobby_tour_step = LOBBY_TOUR_COLECAO;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_COLECAO:
+                    lobby_tour_step = LOBBY_TOUR_VACINAS;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                case LOBBY_TOUR_VACINAS:
+                    lobby_tour_step = LOBBY_TOUR_COMPLETE;
+                    lobby_tour_active = false;
+                    Player->lobby_tour_completed = true;
+                    lobby_tour_timer = 0.0f;
+                    return;
+
+                default:
+                    return;
+            }
+        }
         return;
     }
 
@@ -250,6 +394,32 @@ static void update(ALLEGRO_EVENT* event, bool* running)
                 current_cutscene_index = 0;
                 cutscene_already_seen = true;
                 in_history_screen = true;
+            }
+        }
+        return;
+    }
+
+    if (show_tutorial_modal)
+    {
+        if (event->type == ALLEGRO_EVENT_MOUSE_BUTTON_DOWN)
+        {
+            int mx = event->mouse.x;
+            int my = event->mouse.y;
+
+            int modal_w = 600;
+            int modal_h = 220;
+            int modal_x = (1280 - modal_w) / 2;
+            int modal_y = (720 - modal_h) / 2;
+
+            int button_w = 100;
+            int button_h = 40;
+            int button_x = modal_x + (modal_w - button_w) / 2;
+            int button_y = modal_y + modal_h - 60;
+
+            if (mx >= button_x && mx <= button_x + button_w && my >= button_y &&
+                my <= button_y + button_h)
+            {
+                show_tutorial_modal = false;
             }
         }
         return;
@@ -301,7 +471,10 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
                     if (level_nodes[i].is_special)
                     {
-                        printf("Fase Especial %d clicada\n", level_nodes[i].level_number);
+                        printf("Fase Especial %d - Boss Final!\n", level_nodes[i].level_number);
+                        current_screen->destroy();
+                        current_screen = &BossStageScreen;
+                        current_screen->init(NULL);
                     }
                     else
                     {
@@ -329,6 +502,19 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         int mx = event->mouse.x;
         int my = event->mouse.y;
 
+        int tour_btn_x1 = 10;
+        int tour_btn_y1 = 10;
+        int tour_btn_x2 = 100;
+        int tour_btn_y2 = 50;
+        if (mx >= tour_btn_x1 && mx <= tour_btn_x2 && my >= tour_btn_y1 && my <= tour_btn_y2)
+        {
+            lobby_tour_active = true;
+            lobby_tour_step = LOBBY_TOUR_WELCOME;
+            lobby_tour_timer = 0.0f;
+            Player->lobby_tour_completed = false;
+            return;
+        }
+
         int col_x1 = 1050;
         int col_y1 = 170;
         int col_x2 = 1220;
@@ -336,6 +522,9 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         if (mx >= col_x1 && mx <= col_x2 && my >= col_y1 && my <= col_y2)
         {
             printf("Coleção\n");
+            current_screen->destroy();
+            current_screen = &Bestiary;
+            current_screen->init(NULL);
         }
 
         int sf_x1 = 100;
@@ -344,6 +533,12 @@ static void update(ALLEGRO_EVENT* event, bool* running)
         int sf_y2 = 510;
         if (mx >= sf_x1 && mx <= sf_x2 && my >= sf_y1 && my <= sf_y2)
         {
+            if (Player && Player->current_stage == 1)
+            {
+                show_tutorial_modal = true;
+                return;
+            }
+
             current_screen->destroy();
             current_screen = &EndlessModeScreen;
             current_screen->init(NULL);
@@ -398,26 +593,15 @@ static void draw(int screen_width, int screen_height)
         return;
     }
 
-    if (in_history_screen)
+    if (show_tutorial_modal)
     {
-        if (background_history)
-            al_draw_scaled_bitmap(background_history, 0, 0, al_get_bitmap_width(background_history),
-                                  al_get_bitmap_height(background_history), 0, 0, 1280, 720, 0);
-
-        draw_level_connections();
-        draw_level_nodes();
-
-        al_draw_filled_rectangle(50, 630, 250, 690, al_map_rgb(80, 80, 80));
-        al_draw_rectangle(50, 630, 250, 690, al_map_rgb(255, 255, 255), 2);
-        al_draw_text(font, al_map_rgb(255, 255, 255), 150, 655, ALLEGRO_ALIGN_CENTRE, "Voltar");
-
-        al_draw_filled_rectangle(1030, 630, 1230, 690, al_map_rgb(70, 130, 180));
-        al_draw_rectangle(1030, 630, 1230, 690, al_map_rgb(255, 255, 255), 2);
-        al_draw_text(font, al_map_rgb(255, 255, 255), 1130, 655, ALLEGRO_ALIGN_CENTRE,
-                     "Ver Cutscene");
+        if (background)
+            al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
+                                  al_get_bitmap_height(background), 0, 0, 1280, 720, 0);
 
         ALLEGRO_COLOR blue = al_map_rgb(135, 206, 250);
         ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
+
         float circle_x = 1240;
         float circle_y = 50;
         float radius = 25;
@@ -425,8 +609,80 @@ static void draw(int screen_width, int screen_height)
         al_draw_circle(circle_x, circle_y, radius, black, 3);
 
         char vaccines_text[10];
-        snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
+        snprintf(vaccines_text, sizeof(vaccines_text), "%d", Player->vaccines);
         al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
+
+        al_draw_filled_rectangle(0, 0, 1280, 720, al_map_rgba(0, 0, 0, 180));
+
+        int modal_w = 600;
+        int modal_h = 220;
+        int modal_x = (1280 - modal_w) / 2;
+        int modal_y = (720 - modal_h) / 2;
+
+        al_draw_filled_rounded_rectangle(modal_x, modal_y, modal_x + modal_w, modal_y + modal_h, 10,
+                                         10, al_map_rgb(40, 40, 60));
+        al_draw_rounded_rectangle(modal_x, modal_y, modal_x + modal_w, modal_y + modal_h, 10, 10,
+                                  al_map_rgb(150, 150, 150), 3.0f);
+
+        if (font)
+        {
+            const char* line1 = "MODO SEM FIM BLOQUEADO";
+            const char* line2 = "Você precisa completar a primeira fase";
+            const char* line3 = "no modo história para desbloquear";
+            const char* line4 = "o modo sem fim e concluir o tutorial.";
+
+            al_draw_text(font, al_map_rgb(255, 255, 255), modal_x + modal_w / 2, modal_y + 30,
+                         ALLEGRO_ALIGN_CENTER, line1);
+
+            al_draw_text(font, al_map_rgb(200, 200, 200), modal_x + modal_w / 2, modal_y + 70,
+                         ALLEGRO_ALIGN_CENTER, line2);
+
+            al_draw_text(font, al_map_rgb(200, 200, 200), modal_x + modal_w / 2, modal_y + 90,
+                         ALLEGRO_ALIGN_CENTER, line3);
+
+            al_draw_text(font, al_map_rgb(200, 200, 200), modal_x + modal_w / 2, modal_y + 110,
+                         ALLEGRO_ALIGN_CENTER, line4);
+        }
+
+        int button_w = 100;
+        int button_h = 40;
+        int button_x = modal_x + (modal_w - button_w) / 2;
+        int button_y = modal_y + modal_h - 60;
+
+        al_draw_filled_rounded_rectangle(button_x, button_y, button_x + button_w,
+                                         button_y + button_h, 5, 5, al_map_rgb(0, 180, 0));
+        al_draw_rounded_rectangle(button_x, button_y, button_x + button_w, button_y + button_h, 5,
+                                  5, al_map_rgb(255, 255, 255), 2.0f);
+
+        if (font)
+        {
+            al_draw_text(font, al_map_rgb(255, 255, 255), button_x + button_w / 2,
+                         button_y + button_h / 2 - 5, ALLEGRO_ALIGN_CENTER, "OK");
+        }
+
+        return;
+    }
+
+    if (in_history_screen)
+    {
+        if (background_history)
+            al_draw_scaled_bitmap(background_history, 0, 0, al_get_bitmap_width(background_history),
+                                  al_get_bitmap_height(background_history), 0, 0, 1280, 720, 0);
+
+        al_draw_text(level_font, al_map_rgb(255, 255, 255), 640, 90, ALLEGRO_ALIGN_CENTRE,
+                     "SELECIONE UMA FASE");
+
+        draw_level_connections();
+        draw_level_nodes();
+
+        al_draw_filled_rounded_rectangle(50, 630, 250, 690, 8, 8, al_map_rgb(80, 80, 80));
+        al_draw_rounded_rectangle(50, 630, 250, 690, 8, 8, al_map_rgb(255, 255, 255), 2);
+        al_draw_text(font, al_map_rgb(255, 255, 255), 150, 652, ALLEGRO_ALIGN_CENTRE, "Voltar");
+
+        al_draw_filled_rounded_rectangle(1030, 630, 1230, 690, 8, 8, al_map_rgb(70, 130, 180));
+        al_draw_rounded_rectangle(1030, 630, 1230, 690, 8, 8, al_map_rgb(255, 255, 255), 2);
+        al_draw_text(font, al_map_rgb(255, 255, 255), 1130, 652, ALLEGRO_ALIGN_CENTRE,
+                     "Ver Cutscene");
 
         return;
     }
@@ -435,37 +691,197 @@ static void draw(int screen_width, int screen_height)
         al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
                               al_get_bitmap_height(background), 0, 0, 1280, 720, 0);
 
-    ALLEGRO_COLOR blue = al_map_rgb(135, 206, 250);
-    ALLEGRO_COLOR black = al_map_rgb(0, 0, 0);
+    draw_vaccines_count(screen_width, screen_height);
 
-    float circle_x = 1240;
-    float circle_y = 50;
-    float radius = 25;
-    al_draw_filled_circle(circle_x, circle_y, radius, blue);
-    al_draw_circle(circle_x, circle_y, radius, black, 3);
+    if (!lobby_tour_active && !in_history_screen && !showing_cutscene)
+    {
+        al_draw_filled_rounded_rectangle(10, 10, 100, 50, 5, 5, al_map_rgb(70, 130, 180));
+        al_draw_rounded_rectangle(10, 10, 100, 50, 5, 5, al_map_rgb(255, 255, 255), 2.0f);
+        if (font)
+            al_draw_text(font, al_map_rgb(255, 255, 255), 55, 25, ALLEGRO_ALIGN_CENTER, "TOUR");
+    }
 
-    char vaccines_text[10];
-    snprintf(vaccines_text, sizeof(vaccines_text), "%d", PLAYER_ENTITY->vaccines);
-    al_draw_text(font, black, circle_x, circle_y - 8, ALLEGRO_ALIGN_CENTRE, vaccines_text);
+    if (lobby_tour_active && !in_history_screen && !showing_cutscene)
+    {
+        ALLEGRO_FONT* tour_font = cutscene_font ? cutscene_font : font;
+        ALLEGRO_FONT* tour_title_font = level_font ? level_font : font;
+
+        if (lobby_tour_step == LOBBY_TOUR_WELCOME)
+        {
+            al_draw_filled_rectangle(0, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(255, 255, 255),
+                                             screen_width / 2, screen_height / 2 - 80,
+                                             "BEM-VINDO, GUARDIÃO!", 1.5f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2,
+                    "Seja bem-vindo ao lobby!\nAqui você pode acessar diferentes modos,\nver sua coleção "
+                    "e acompanhar seu progresso.\n\nVamos fazer um tour pelos elementos!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 100, "Clique para continuar", 1.2f);
+                al_draw_text(font, al_map_rgb(150, 150, 150), screen_width / 2, screen_height - 40,
+                             ALLEGRO_ALIGN_CENTER, "Pressione ESC para pular o tour");
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_HISTORIA)
+        {
+            int his_x1 = 360;
+            int his_y1 = 130;
+            int his_x2 = 950;
+            int his_y2 = 460;
+
+            al_draw_filled_rectangle(0, 0, his_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(his_x2, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(his_x1, 0, his_x2, his_y1, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(his_x1, his_y2, his_x2, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            al_draw_rectangle(his_x1, his_y1, his_x2, his_y2, al_map_rgb(0, 255, 0), 5.0f);
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(0, 255, 0), screen_width / 2,
+                                             80, "MODO HISTÓRIA", 1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height - 100,
+                    "Este é o modo história.\nAqui você acessa um monitor com as fases\ndisponíveis e "
+                    "pode selecionar qual jogar!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height - 40, "Clique para continuar", 1.2f);
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_MODO_SEM_FIM)
+        {
+            int sf_x1 = 100;
+            int sf_y1 = 400;
+            int sf_x2 = 280;
+            int sf_y2 = 510;
+
+            al_draw_filled_rectangle(0, 0, sf_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(sf_x2, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(sf_x1, 0, sf_x2, sf_y1, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(sf_x1, sf_y2, sf_x2, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            al_draw_rectangle(sf_x1, sf_y1, sf_x2, sf_y2, al_map_rgb(255, 165, 0), 5.0f);
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(255, 165, 0),
+                                             screen_width / 2, screen_height / 2 - 60, "MODO SEM FIM",
+                                             1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2 + 20,
+                    "Aqui você pode jogar um modo infinito!\nTeste suas habilidades até onde conseguir.\n"
+                    "(Desbloqueado após completar a fase 1)",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 100, "Clique para continuar", 1.2f);
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_COLECAO)
+        {
+            int col_x1 = 1050;
+            int col_y1 = 170;
+            int col_x2 = 1220;
+            int col_y2 = 260;
+
+            al_draw_filled_rectangle(0, 0, col_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(col_x2, 0, screen_width, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(col_x1, 0, col_x2, col_y1, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(col_x1, col_y2, col_x2, screen_height, al_map_rgba(0, 0, 0, 180));
+
+            al_draw_rectangle(col_x1, col_y1, col_x2, col_y2, al_map_rgb(138, 43, 226), 5.0f);
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(138, 43, 226),
+                                             screen_width / 2, screen_height / 2 - 60, "COLEÇÃO", 1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2 + 20,
+                    "Acesse sua coleção de defensores e inimigos.\nVeja informações detalhadas sobre "
+                    "cada um\ne desbloqueie novos personagens!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 100, "Clique para continuar", 1.2f);
+            }
+        }
+        else if (lobby_tour_step == LOBBY_TOUR_VACINAS)
+        {
+            int vaccine_x1 = 1200;
+            int vaccine_y1 = 10;
+            int vaccine_x2 = 1270;
+            int vaccine_y2 = 70;
+
+            al_draw_filled_rectangle(0, 0, vaccine_x1, screen_height, al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(vaccine_x2, 0, screen_width, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(vaccine_x1, 0, vaccine_x2, vaccine_y1,
+                                     al_map_rgba(0, 0, 0, 180));
+            al_draw_filled_rectangle(vaccine_x1, vaccine_y2, vaccine_x2, screen_height,
+                                     al_map_rgba(0, 0, 0, 180));
+
+            if (tour_title_font && tour_font)
+            {
+                draw_text_centered_multiline(tour_title_font, al_map_rgb(255, 215, 0),
+                                             screen_width / 2, screen_height / 2 - 80,
+                                             "CONTADOR DE VACINAS", 1.3f);
+                draw_text_centered_multiline(
+                    tour_font, al_map_rgb(220, 220, 220), screen_width / 2, screen_height / 2 + 10,
+                    "Aqui você vê quantas vacinas possui.\nVacinas são ganhas ao eliminar inimigos\ne "
+                    "podem ser usadas para desbloquear\nnovos defensores na coleção!"
+                    "\n\nO tour do lobby terminou! Boa sorte!",
+                    1.2f);
+                draw_text_centered_multiline(tour_font, al_map_rgb(255, 215, 0), screen_width / 2,
+                                             screen_height / 2 + 140, "Clique para finalizar", 1.2f);
+            }
+        }
+    }
+
 }
 
 static void destroy(void)
 {
     if (background)
+    {
         al_destroy_bitmap(background);
+        background = NULL;
+    }
     if (background_history)
+    {
         al_destroy_bitmap(background_history);
+        background_history = NULL;
+    }
     if (font)
+    {
         al_destroy_font(font);
+        font = NULL;
+    }
     if (cutscene_font)
+    {
         al_destroy_font(cutscene_font);
+        cutscene_font = NULL;
+    }
     if (level_font)
+    {
         al_destroy_font(level_font);
+        level_font = NULL;
+    }
+    if (boss_font)
+    {
+        al_destroy_font(boss_font);
+        boss_font = NULL;
+    }
 
     for (int i = 0; i < TOTAL_CUTSCENES; i++)
     {
         if (cutscene_images[i])
+        {
             al_destroy_bitmap(cutscene_images[i]);
+            cutscene_images[i] = NULL;
+        }
     }
 }
 

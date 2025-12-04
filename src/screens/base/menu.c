@@ -27,6 +27,8 @@ static int btn_height = 180;
 
 static void init(ALLEGRO_DISPLAY* display)
 {
+    (void)display;
+
     current_game_state = GAME_MENU;
     al_reserve_samples(1);
 
@@ -85,6 +87,9 @@ static void update(ALLEGRO_EVENT* event, bool* running)
 
 static void draw(int screen_width, int screen_height)
 {
+    (void)screen_width;
+    (void)screen_height;
+
     if (background)
         al_draw_scaled_bitmap(background, 0, 0, al_get_bitmap_width(background),
                               al_get_bitmap_height(background), 0, 0, 1280, 720, 0);

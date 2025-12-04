@@ -2,6 +2,7 @@
 #define STAGE_SCREEN_H
 
 #include "../screen.h"
+#include "../../entities/entities.h"
 
 extern Screen StageScreen;
 

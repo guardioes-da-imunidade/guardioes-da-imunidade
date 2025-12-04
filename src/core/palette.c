@@ -1,0 +1,24 @@
+#include "palette.h"
+
+ALLEGRO_COLOR COLOR_BLACK;
+ALLEGRO_COLOR COLOR_WHITE;
+ALLEGRO_COLOR COLOR_GRAY;
+ALLEGRO_COLOR COLOR_GREEN;
+ALLEGRO_COLOR COLOR_RED;
+ALLEGRO_COLOR COLOR_BLUE;
+ALLEGRO_COLOR COLOR_YELLOW;
+
+ALLEGRO_COLOR COLOR_TRANSPARENT;
+
+void init_colors()
+{
+    COLOR_BLACK = al_map_rgb(0, 0, 0);
+    COLOR_WHITE = al_map_rgb(255, 255, 255);
+    COLOR_GRAY = al_map_rgb(110, 112, 110);
+    COLOR_YELLOW = al_map_rgb(255, 204, 0);
+    COLOR_GREEN = al_map_rgb(50, 168, 82);
+    COLOR_RED = al_map_rgb(245, 66, 66);
+    COLOR_BLUE = al_map_rgb(66, 135, 245);
+
+    COLOR_TRANSPARENT = al_map_rgba(0, 0, 0, 0);
+}
